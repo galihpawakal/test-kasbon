@@ -1,18 +1,12 @@
 import { z } from 'zod'
 
 export const debtSchema = z.object({
-  type: z.enum(['owed_to_me', 'i_owe'], {
-    required_error: 'Tipe hutang wajib dipilih',
-  }),
+  type: z.enum(['owed_to_me', 'i_owe']),
   counterpart_name: z
-    .string({ required_error: 'Nama orang wajib diisi' })
+    .string()
     .min(1, 'Nama orang wajib diisi')
     .max(100, 'Nama terlalu panjang'),
-  amount: z.coerce
-    .number({
-      required_error: 'Jumlah wajib diisi',
-      invalid_type_error: 'Jumlah harus berupa angka',
-    })
+  amount: z.number()
     .int('Jumlah harus berupa bilangan bulat (tanpa desimal)')
     .nonnegative('Jumlah tidak boleh negatif'),
   note: z
