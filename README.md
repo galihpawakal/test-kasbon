@@ -7,9 +7,19 @@ Web aplikasi sederhana untuk melacak utang piutang pribadi, dibangun dengan Next
 [https://kasbon-five.vercel.app](https://kasbon-five.vercel.app)
 
 **Akun Demo Tester:**
-- **Email:** `demo@tester.com`
-- **Password:** `demo123456`
+- **Email:** `galih@mail.com`
+- **Password:** `12345678`
 *(Atau Anda dapat mendaftar langsung karena Email Confirmation sudah dimatikan)*
+
+## ✨ Fitur Utama
+
+- **Pencatatan Utang & Piutang**: Lacak utang atau piutang dengan detail.
+- **Kategori**: Kelompokkan catatan ke dalam kategori spesifik.
+- **Riwayat Pembayaran (History)**: Lacak jejak perubahan dan riwayat cicilan/pembayaran utang.
+- **Multi-Mata Uang (Currency)**: Mendukung berbagai jenis mata uang pada setiap pencatatan.
+- **Kontak (WhatsApp/Telp)**: Simpan nomor telepon yang bersangkutan agar mudah dihubungi.
+- **Keamanan Ketat (RLS)**: Data pengguna 100% terisolasi dan aman berkat Supabase RLS.
+- **Optimistic Updates**: Interaksi UI terasa instan menggunakan SWR.
 
 ## 🛠️ Tech Stack & Library
 
