@@ -24,11 +24,16 @@ export async function GET(request: Request) {
 
     let query = supabase
       .from('debts')
-      .select('*')
+      .select('*, category:debt_categories(id, name, color)')
       .order(sort, { ascending: order === 'asc' })
 
     if (type && (type === 'owed_to_me' || type === 'i_owe')) {
       query = query.eq('type', type)
+    }
+
+    const category = searchParams.get('category')
+    if (category && category !== 'semua') {
+      query = query.eq('category_id', category)
     }
 
     if (status === 'lunas') {

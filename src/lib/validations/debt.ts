@@ -23,6 +23,23 @@ export const debtSchema = z.object({
       message: 'Format tanggal tidak valid',
     })
     .transform((val) => (val ? new Date(val).toISOString().split('T')[0] : null)),
+  category_id: z
+    .string()
+    .uuid('Kategori tidak valid')
+    .optional()
+    .nullable()
+    .transform((val) => val || null),
+  currency: z
+    .string()
+    .length(3, 'Kode mata uang harus 3 huruf')
+    .default('IDR')
+    .optional(),
+  counterpart_phone: z
+    .string()
+    .max(20, 'Nomor terlalu panjang')
+    .optional()
+    .nullable()
+    .transform((val) => val || null),
 })
 
 export type DebtInput = z.infer<typeof debtSchema>

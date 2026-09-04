@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { MoreHorizontal, Plus, Loader2 } from 'lucide-react'
+import { MoreHorizontal, Plus, Loader2, Printer, Phone } from 'lucide-react'
 import { DebtFormModal } from './DebtFormModal'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
@@ -17,6 +17,7 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json())
 export function DashboardClient() {
   const [statusFilter, setStatusFilter] = useState('semua')
   const [typeFilter, setTypeFilter] = useState('semua')
+  const [categoryFilter, setCategoryFilter] = useState('semua')
   const [sortConfig, setSortConfig] = useState('created_desc')
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -36,6 +37,7 @@ export function DashboardClient() {
   let apiUrl = '/api/debts?'
   if (statusFilter !== 'semua') apiUrl += `status=${statusFilter}&`
   if (typeFilter !== 'semua') apiUrl += `type=${typeFilter}&`
+  if (categoryFilter !== 'semua') apiUrl += `category=${categoryFilter}&`
   if (debouncedSearch) apiUrl += `search=${encodeURIComponent(debouncedSearch)}&`
   
   if (sortConfig) {
@@ -50,6 +52,7 @@ export function DashboardClient() {
   }
 
   const { data: debts, error, isLoading, mutate } = useSWR(apiUrl, fetcher)
+  const { data: categories } = useSWR('/api/categories', fetcher)
 
   // Calculate summaries
   let totalOwedToMe = 0
@@ -57,8 +60,10 @@ export function DashboardClient() {
 
   if (debts && Array.isArray(debts)) {
     debts.forEach((debt: any) => {
-      // Only count unresolved debts for the summary (or should we count all? The requirement usually means unresolved)
-      if (!debt.settled_at) {
+      // Only count unresolved debts for the summary
+      // Limit summary to IDR only as requested in Multi-Currency specs
+      const isIDR = !debt.currency || debt.currency === 'IDR'
+      if (!debt.settled_at && isIDR) {
         if (debt.type === 'owed_to_me') {
           totalOwedToMe += debt.amount
         } else if (debt.type === 'i_owe') {
@@ -131,12 +136,23 @@ export function DashboardClient() {
   }
 
   return (
-    <div className="w-full max-w-5xl mx-auto py-8 px-4 sm:px-6">
-      <div className="flex justify-between items-center mb-8">
+    <div className="w-full max-w-5xl mx-auto py-8 px-4 sm:px-6 print:p-0 print:max-w-none">
+      <div className="flex justify-between items-center mb-8 print:hidden">
         <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Kasbon</h1>
-        <Button onClick={openNewModal} className="shadow-sm">
-          <Plus className="mr-2 h-4 w-4" /> Catat Baru
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => window.print()} variant="outline" className="shadow-sm">
+            <Printer className="mr-2 h-4 w-4" /> Export PDF
+          </Button>
+          <Button onClick={openNewModal} className="shadow-sm">
+            <Plus className="mr-2 h-4 w-4" /> Catat Baru
+          </Button>
+        </div>
+      </div>
+      
+      {/* Print-only title */}
+      <div className="hidden print:block mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Laporan Kasbon</h1>
+        <p className="text-gray-500">Dicetak pada {new Date().toLocaleDateString('id-ID')}</p>
       </div>
 
       {/* Summary Cards */}
@@ -172,7 +188,7 @@ export function DashboardClient() {
       </div>
 
       {/* Bar Chart Comparison */}
-      <Card className="mb-10 border-gray-200 shadow-sm">
+      <Card className="mb-10 border-gray-200 shadow-sm print:hidden">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-gray-500">Perbandingan Belum Lunas</CardTitle>
         </CardHeader>
@@ -199,7 +215,7 @@ export function DashboardClient() {
       </Card>
 
       {/* Filters & Search */}
-      <div className="flex flex-col sm:flex-row flex-wrap gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row flex-wrap gap-4 mb-6 print:hidden">
         <div className="w-full sm:flex-1 min-w-[200px] relative">
           <input
             type="text"
@@ -234,13 +250,25 @@ export function DashboardClient() {
         </Select>
 
         <Select value={typeFilter} onValueChange={(val) => val && setTypeFilter(val)}>
-          <SelectTrigger className="w-full sm:w-[180px]">
+          <SelectTrigger className="w-full sm:w-[150px]">
             <SelectValue placeholder="Tipe" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="semua">Semua Tipe</SelectItem>
             <SelectItem value="owed_to_me">Dihutang</SelectItem>
             <SelectItem value="i_owe">Hutang</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={categoryFilter} onValueChange={(val) => val && setCategoryFilter(val)}>
+          <SelectTrigger className="w-full sm:w-[150px]">
+            <SelectValue placeholder="Kategori" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="semua">Semua Kategori</SelectItem>
+            {categories?.map((c: any) => (
+              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
         
@@ -296,8 +324,11 @@ export function DashboardClient() {
               }
               acc[debt.counterpart_name].items.push(debt)
               if (!debt.settled_at) {
-                if (debt.type === 'owed_to_me') acc[debt.counterpart_name].totalOwedToMe += debt.amount
-                else if (debt.type === 'i_owe') acc[debt.counterpart_name].totalIOwe += debt.amount
+                const isIDR = !debt.currency || debt.currency === 'IDR'
+                if (isIDR) {
+                  if (debt.type === 'owed_to_me') acc[debt.counterpart_name].totalOwedToMe += debt.amount
+                  else if (debt.type === 'i_owe') acc[debt.counterpart_name].totalIOwe += debt.amount
+                }
               }
               return acc
             }, {}) || {}
@@ -361,6 +392,29 @@ function DebtItem({ debt, onMarkSettled, onEdit, onDelete }: { debt: any, onMark
           ) : (
             <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-50">Belum Lunas</Badge>
           )}
+          {debt.category && (
+            <Badge variant="outline" className="text-xs" style={{ borderColor: debt.category.color || '#e5e7eb', color: debt.category.color || '#374151' }}>
+              {debt.category.name}
+            </Badge>
+          )}
+          
+          {/* Due date reminders */}
+          {!debt.settled_at && debt.due_date && (() => {
+            const today = new Date()
+            today.setHours(0, 0, 0, 0)
+            const dueDate = new Date(debt.due_date)
+            dueDate.setHours(0, 0, 0, 0)
+            
+            const diffTime = dueDate.getTime() - today.getTime()
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+            
+            if (diffDays < 0) {
+              return <Badge variant="destructive" className="bg-red-500 hover:bg-red-600 text-[10px] px-1.5 py-0">Terlambat {Math.abs(diffDays)} hari</Badge>
+            } else if (diffDays <= 3) {
+              return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200 text-[10px] px-1.5 py-0 border-yellow-200">Jatuh tempo H-{diffDays}</Badge>
+            }
+            return null
+          })()}
         </div>
         <div className="text-sm text-gray-500 flex items-center gap-2">
           <span>{formatRelativeTime(debt.created_at)}</span>
@@ -375,17 +429,30 @@ function DebtItem({ debt, onMarkSettled, onEdit, onDelete }: { debt: any, onMark
       
       <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
         <div className={`font-bold text-lg ${debt.type === 'owed_to_me' ? 'text-green-600' : 'text-red-600'} ${debt.settled_at ? 'line-through text-gray-400' : ''}`}>
-          {formatRupiah(debt.amount)}
+          {(!debt.currency || debt.currency === 'IDR') 
+            ? formatRupiah(debt.amount) 
+            : new Intl.NumberFormat('en-US', { style: 'currency', currency: debt.currency }).format(debt.amount)}
         </div>
         
         <DropdownMenu>
-          <DropdownMenuTrigger className="p-2 hover:bg-gray-100 rounded-md">
+          <DropdownMenuTrigger className="p-2 hover:bg-gray-100 rounded-md print:hidden">
               <MoreHorizontal className="h-4 w-4" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => onMarkSettled(debt.id, !!debt.settled_at)}>
               {debt.settled_at ? 'Batal Lunas' : 'Tandai Lunas'}
             </DropdownMenuItem>
+            
+            {debt.counterpart_phone && !debt.settled_at && (
+              <DropdownMenuItem 
+                onClick={() => window.open(`https://wa.me/${debt.counterpart_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Halo ${debt.counterpart_name}, ini reminder bahwa kamu memiliki tagihan/kasbon yang belum lunas sebesar ${formatRupiah(debt.amount)}.`)}`, '_blank')}
+                className="flex items-center cursor-pointer"
+              >
+                <Phone className="mr-2 h-4 w-4 text-green-600" />
+                Kirim Tagihan WA
+              </DropdownMenuItem>
+            )}
+            
             <DropdownMenuItem onClick={() => onEdit(debt)}>
               Edit
             </DropdownMenuItem>

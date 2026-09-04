@@ -8,8 +8,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { debtSchema, DebtInput } from '@/lib/validations/debt'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Settings } from 'lucide-react'
+import { DebtHistory } from './DebtHistory'
+import { CategoryManagerModal } from './CategoryManagerModal'
+import useSWR from 'swr'
 
 interface DebtFormModalProps {
   isOpen: boolean
@@ -21,6 +25,8 @@ interface DebtFormModalProps {
 export function DebtFormModal({ isOpen, onClose, onSuccess, editingDebt }: DebtFormModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
+  const { data: categories } = useSWR(isOpen ? '/api/categories' : null, (url) => fetch(url).then(res => res.json()))
 
   const {
     register,
@@ -29,8 +35,8 @@ export function DebtFormModal({ isOpen, onClose, onSuccess, editingDebt }: DebtF
     setValue,
     watch,
     formState: { errors },
-  } = useForm({
-    resolver: zodResolver(debtSchema),
+  } = useForm<DebtInput>({
+    resolver: zodResolver(debtSchema) as any,
     defaultValues: {
       type: 'owed_to_me',
       amount: 0,
@@ -49,6 +55,7 @@ export function DebtFormModal({ isOpen, onClose, onSuccess, editingDebt }: DebtF
           counterpart_name: editingDebt.counterpart_name,
           note: editingDebt.note || '',
           due_date: editingDebt.due_date || '',
+          counterpart_phone: editingDebt.counterpart_phone || '',
         })
       } else {
         reset({
@@ -57,6 +64,9 @@ export function DebtFormModal({ isOpen, onClose, onSuccess, editingDebt }: DebtF
           counterpart_name: '',
           note: '',
           due_date: new Date().toISOString().split('T')[0],
+          category_id: '',
+          currency: 'IDR',
+          counterpart_phone: '',
         })
       }
       setError(null)
@@ -66,6 +76,11 @@ export function DebtFormModal({ isOpen, onClose, onSuccess, editingDebt }: DebtF
   const onSubmit = async (data: any) => {
     setIsSubmitting(true)
     setError(null)
+
+    // transform empty category_id to null
+    if (!data.category_id) {
+      data.category_id = null
+    }
 
     try {
       const url = editingDebt ? `/api/debts/${editingDebt.id}` : '/api/debts'
@@ -114,7 +129,7 @@ export function DebtFormModal({ isOpen, onClose, onSuccess, editingDebt }: DebtF
             <RadioGroup
               defaultValue="owed_to_me"
               value={watch('type')}
-              onValueChange={(val) => setValue('type', val as 'owed_to_me' | 'i_owe')}
+              onValueChange={(val) => setValue('type', (val as 'owed_to_me' | 'i_owe') || 'owed_to_me')}
               className="flex gap-4"
             >
               <div className="flex items-center space-x-2">
@@ -146,15 +161,47 @@ export function DebtFormModal({ isOpen, onClose, onSuccess, editingDebt }: DebtF
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="amount">Jumlah (Rp) *</Label>
+            <Label htmlFor="counterpart_phone">No. WhatsApp (Opsional)</Label>
             <Input
-              id="amount"
-              type="number"
-              placeholder="Misal: 50000"
-              {...register('amount', { valueAsNumber: true })}
+              id="counterpart_phone"
+              placeholder="Misal: 628123456789"
+              {...register('counterpart_phone')}
             />
-            <p className="text-gray-400 text-xs">Masukkan angka bulat tanpa titik/koma</p>
-            {errors.amount && <p className="text-red-500 text-xs">{errors.amount.message}</p>}
+            <p className="text-gray-400 text-xs">Gunakan format 62xxx (tanpa +)</p>
+            {errors.counterpart_phone && (
+              <p className="text-red-500 text-xs">{errors.counterpart_phone.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-1.5 flex gap-2">
+            <div className="flex-1 space-y-1.5">
+              <Label htmlFor="amount">Jumlah *</Label>
+              <Input
+                id="amount"
+                type="number"
+                placeholder="Misal: 50000"
+                {...register('amount', { valueAsNumber: true })}
+              />
+              <p className="text-gray-400 text-xs">Angka bulat tanpa titik/koma</p>
+              {errors.amount && <p className="text-red-500 text-xs">{errors.amount.message}</p>}
+            </div>
+            <div className="w-[100px] space-y-1.5">
+              <Label htmlFor="currency">Mata Uang</Label>
+              <Select
+                value={watch('currency') || 'IDR'}
+                onValueChange={(val) => setValue('currency', val || 'IDR')}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="IDR">IDR</SelectItem>
+                  <SelectItem value="USD">USD</SelectItem>
+                  <SelectItem value="EUR">EUR</SelectItem>
+                  <SelectItem value="SGD">SGD</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="space-y-1.5">
@@ -181,6 +228,35 @@ export function DebtFormModal({ isOpen, onClose, onSuccess, editingDebt }: DebtF
             {errors.note && <p className="text-red-500 text-xs">{errors.note.message}</p>}
           </div>
 
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-center">
+              <Label>Kategori (Opsional)</Label>
+              <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs text-blue-600" onClick={() => setIsCategoryModalOpen(true)}>
+                <Settings className="h-3 w-3 mr-1" /> Kelola
+              </Button>
+            </div>
+            <Select
+              value={watch('category_id') || 'none'}
+              onValueChange={(val) => setValue('category_id', !val || val === 'none' ? null : val)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Pilih Kategori" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">-- Tidak ada kategori --</SelectItem>
+                {categories?.map((c: any) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: c.color || '#e5e7eb' }} />
+                      {c.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.category_id && <p className="text-red-500 text-xs">{errors.category_id.message as string}</p>}
+          </div>
+
           <div className="pt-4 flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
               Batal
@@ -197,7 +273,11 @@ export function DebtFormModal({ isOpen, onClose, onSuccess, editingDebt }: DebtF
             </Button>
           </div>
         </form>
+
+        {editingDebt && <DebtHistory debtId={editingDebt.id} />}
       </DialogContent>
+      
+      <CategoryManagerModal isOpen={isCategoryModalOpen} onClose={() => setIsCategoryModalOpen(false)} />
     </Dialog>
   )
 }
