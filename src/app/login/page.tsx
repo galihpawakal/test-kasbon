@@ -1,13 +1,13 @@
 import Link from 'next/link'
 import { login } from './actions'
-import { Button } from '@/components/ui/button'
+import { SubmitButton } from '@/components/submit-button'
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; success?: string }>
 }) {
-  const { error } = await searchParams
+  const { error, success } = await searchParams
 
   return (
     <div className="flex h-screen w-full items-center justify-center px-4 bg-gray-50">
@@ -20,6 +20,12 @@ export default async function LoginPage({
         {error && (
           <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-6 border border-red-100">
             {error}
+          </div>
+        )}
+        
+        {success && (
+          <div className="bg-green-50 text-green-600 p-3 rounded-lg text-sm mb-6 border border-green-100">
+            {success}
           </div>
         )}
 
@@ -52,9 +58,9 @@ export default async function LoginPage({
           </div>
 
           <div className="mt-4 flex flex-col gap-2">
-            <Button type="submit" formAction={login} className="w-full">
+            <SubmitButton formAction={login} className="w-full" pendingText="Masuk...">
               Masuk
-            </Button>
+            </SubmitButton>
           </div>
         </form>
         

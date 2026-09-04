@@ -41,8 +41,7 @@ export async function signup(formData: FormData) {
     redirect('/register?error=' + encodeURIComponent(error.message))
   }
 
-  revalidatePath('/', 'layout')
-  redirect('/')
+  redirect('/login?success=' + encodeURIComponent('Berhasil daftar akun Anda. Silakan login.'))
 }
 
 export async function logout() {

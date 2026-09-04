@@ -18,11 +18,14 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
     const type = searchParams.get('type')
+    const search = searchParams.get('search')
+    const sort = searchParams.get('sort') || 'created_at'
+    const order = searchParams.get('order') || 'desc'
 
     let query = supabase
       .from('debts')
       .select('*')
-      .order('created_at', { ascending: false })
+      .order(sort, { ascending: order === 'asc' })
 
     if (type && (type === 'owed_to_me' || type === 'i_owe')) {
       query = query.eq('type', type)
@@ -32,6 +35,10 @@ export async function GET(request: Request) {
       query = query.not('settled_at', 'is', null)
     } else if (status === 'belum_lunas') {
       query = query.is('settled_at', null)
+    }
+
+    if (search) {
+      query = query.ilike('counterpart_name', `%${search}%`)
     }
 
     const { data, error } = await query

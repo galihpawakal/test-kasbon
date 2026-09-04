@@ -4,7 +4,12 @@ Web aplikasi sederhana untuk melacak utang piutang pribadi, dibangun dengan Next
 
 ## 🚀 Live Demo
 
-[https://kasbon-demo.vercel.app](https://kasbon-demo.vercel.app) *(Ganti dengan link Vercel Anda yang aktif)*
+[https://kasbon-five.vercel.app](https://kasbon-five.vercel.app)
+
+**Akun Demo Tester:**
+- **Email:** `demo@tester.com`
+- **Password:** `demo123456`
+*(Atau Anda dapat mendaftar langsung karena Email Confirmation sudah dimatikan)*
 
 ## 🛠️ Tech Stack & Library
 

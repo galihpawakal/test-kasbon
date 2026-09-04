@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { signup } from '@/app/login/actions'
-import { Button } from '@/components/ui/button'
+import { SubmitButton } from '@/components/submit-button'
 
 export default async function RegisterPage({
   searchParams,
@@ -66,9 +66,9 @@ export default async function RegisterPage({
           </div>
 
           <div className="mt-4 flex flex-col gap-2">
-            <Button type="submit" formAction={signup} className="w-full">
+            <SubmitButton formAction={signup} className="w-full" pendingText="Mendaftar...">
               Daftar Akun Baru
-            </Button>
+            </SubmitButton>
           </div>
         </form>
         
