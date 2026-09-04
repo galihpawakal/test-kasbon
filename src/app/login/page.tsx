@@ -56,13 +56,14 @@ export default async function LoginPage({
               Masuk
             </Button>
           </div>
-          <div className="mt-4 text-center text-sm text-gray-600">
-            Belum punya akun?{' '}
-            <Link href="/register" className="font-semibold text-black hover:underline">
-              Daftar di sini
-            </Link>
-          </div>
         </form>
+        
+        <div className="mt-4 text-center text-sm text-gray-600">
+          Belum punya akun?{' '}
+          <Link href="/register" className="font-semibold text-black hover:underline">
+            Daftar di sini
+          </Link>
+        </div>
       </div>
     </div>
   )

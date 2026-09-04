@@ -70,14 +70,14 @@ export default async function RegisterPage({
               Daftar Akun Baru
             </Button>
           </div>
-
-          <div className="mt-4 text-center text-sm text-gray-600">
-            Sudah punya akun?{' '}
-            <Link href="/login" className="font-semibold text-black hover:underline">
-              Masuk di sini
-            </Link>
-          </div>
         </form>
+        
+        <div className="mt-4 text-center text-sm text-gray-600">
+          Sudah punya akun?{' '}
+          <Link href="/login" className="font-semibold text-black hover:underline">
+            Masuk di sini
+          </Link>
+        </div>
       </div>
     </div>
   )
