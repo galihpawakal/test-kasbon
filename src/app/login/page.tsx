@@ -52,7 +52,7 @@ export default async function LoginPage({
           </div>
 
           <div className="mt-4 flex flex-col gap-2">
-            <Button formAction={login} className="w-full">
+            <Button type="submit" formAction={login} className="w-full">
               Masuk
             </Button>
           </div>

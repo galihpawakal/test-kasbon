@@ -66,7 +66,7 @@ export default async function RegisterPage({
           </div>
 
           <div className="mt-4 flex flex-col gap-2">
-            <Button formAction={signup} className="w-full">
+            <Button type="submit" formAction={signup} className="w-full">
               Daftar Akun Baru
             </Button>
           </div>
