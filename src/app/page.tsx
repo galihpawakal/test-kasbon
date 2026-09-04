@@ -26,7 +26,7 @@ export default async function Home() {
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-500 hidden sm:inline-block">{user.email}</span>
             <form action={logout}>
-              <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-900">
+              <Button type="submit" variant="ghost" size="sm" className="text-gray-500 hover:text-gray-900">
                 <LogOut className="h-4 w-4 mr-2" />
                 Keluar
               </Button>

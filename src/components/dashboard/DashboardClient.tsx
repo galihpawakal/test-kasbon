@@ -262,7 +262,9 @@ export function DashboardClient() {
 
         <Select value={categoryFilter} onValueChange={(val) => val && setCategoryFilter(val)}>
           <SelectTrigger className="w-full sm:w-[150px]">
-            <SelectValue placeholder="Kategori" />
+            <SelectValue placeholder="Kategori">
+              {categoryFilter === 'semua' ? 'Semua Kategori' : categories?.find((c: any) => c.id === categoryFilter)?.name || 'Kategori'}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="semua">Semua Kategori</SelectItem>
@@ -384,6 +386,18 @@ function DebtItem({ debt, onMarkSettled, onEdit, onDelete }: { debt: any, onMark
       <div className="flex-1">
         <div className="flex items-center gap-3 mb-1">
           <h3 className="font-semibold text-gray-900 text-lg">{debt.counterpart_name}</h3>
+          {debt.counterpart_phone && (
+            <a 
+              href={`https://wa.me/${debt.counterpart_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Halo ${debt.counterpart_name}, ini reminder bahwa kamu memiliki tagihan/kasbon yang belum lunas sebesar ${formatRupiah(debt.amount)}.`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-500 hover:text-green-600 flex items-center text-sm gap-1 print:hidden"
+              title="Kirim Tagihan WA"
+            >
+              <Phone className="h-3 w-3" />
+              {debt.counterpart_phone}
+            </a>
+          )}
           <Badge variant="outline" className={debt.type === 'owed_to_me' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-orange-50 text-orange-700 border-orange-200'}>
             {debt.type === 'owed_to_me' ? 'Dihutang' : 'Hutang'}
           </Badge>

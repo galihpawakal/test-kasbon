@@ -240,7 +240,11 @@ export function DebtFormModal({ isOpen, onClose, onSuccess, editingDebt }: DebtF
               onValueChange={(val) => setValue('category_id', !val || val === 'none' ? null : val)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Pilih Kategori" />
+                <SelectValue placeholder="Pilih Kategori">
+                  {watch('category_id') && watch('category_id') !== 'none' 
+                    ? categories?.find((c: any) => c.id === watch('category_id'))?.name 
+                    : '-- Tidak ada kategori --'}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">-- Tidak ada kategori --</SelectItem>
