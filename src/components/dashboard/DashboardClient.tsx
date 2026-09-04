@@ -183,7 +183,7 @@ export function DashboardClient() {
                 <XAxis type="number" hide />
                 <YAxis dataKey="name" type="category" width={130} tick={{ fill: '#4b5563', fontSize: 13 }} axisLine={false} tickLine={false} />
                 <Tooltip 
-                  formatter={(value: number) => [formatRupiah(value), 'Total']}
+                  formatter={(value: any) => [formatRupiah(Number(value)), 'Total']}
                   cursor={{ fill: '#f3f4f6' }}
                   contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                 />
