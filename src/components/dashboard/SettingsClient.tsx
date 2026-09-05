@@ -212,12 +212,12 @@ export function SettingsClient({ userEmail }: { userEmail: string }) {
               Yakin ingin keluar dari akun ini? Anda harus memasukkan email dan password lagi untuk masuk kembali.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="sm:justify-end gap-2 mt-4">
-            <Button type="button" variant="outline" onClick={() => setIsLogoutDialogOpen(false)}>
+          <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-2 mt-6">
+            <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => setIsLogoutDialogOpen(false)}>
               Batal
             </Button>
-            <form action={logout}>
-              <Button type="submit" variant="destructive">
+            <form action={logout} className="w-full sm:w-auto">
+              <Button type="submit" variant="destructive" className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white">
                 Ya, Keluar
               </Button>
             </form>
