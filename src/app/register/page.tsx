@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { signup } from '@/app/login/actions'
 import { SubmitButton } from '@/components/submit-button'
+import { cn } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
@@ -12,6 +13,22 @@ export default function RegisterPage() {
   const router = useRouter()
 
   const [showPassword, setShowPassword] = useState(false)
+  const [password, setPassword] = useState('')
+
+  const getPasswordStrength = (pass: string) => {
+    if (!pass) return { score: 0, text: '', color: 'bg-gray-200', w: 'w-0' }
+    let score = 0
+    if (pass.length >= 6) score += 1
+    if (pass.length >= 8) score += 1
+    if (/[A-Z]/.test(pass)) score += 1
+    if (/[0-9]/.test(pass) || /[^A-Za-z0-9]/.test(pass)) score += 1
+    
+    if (score <= 1) return { score: 1, text: 'Lemah', color: 'bg-red-500', w: 'w-1/3' }
+    if (score === 2 || score === 3) return { score: 2, text: 'Sedang', color: 'bg-yellow-500', w: 'w-2/3' }
+    return { score: 3, text: 'Kuat', color: 'bg-green-500', w: 'w-full' }
+  }
+
+  const strength = getPasswordStrength(password)
 
   const handleSignup = async (formData: FormData) => {
     const result = await signup(formData)
@@ -77,6 +94,8 @@ export default function RegisterPage() {
                 type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
                 required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3.5 pr-12 bg-gray-50/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
               />
               <button
@@ -88,6 +107,25 @@ export default function RegisterPage() {
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>
+            {/* Password Strength Indicator */}
+            {password.length > 0 && (
+              <div className="pt-1 space-y-1.5 animate-in fade-in slide-in-from-top-1">
+                <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                  <div 
+                    className={cn("h-full transition-all duration-300 ease-out rounded-full", strength.color, strength.w)}
+                  />
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className={cn(
+                    "font-medium",
+                    strength.score === 1 ? "text-red-600" : strength.score === 2 ? "text-yellow-600" : "text-green-600"
+                  )}>
+                    {strength.text}
+                  </span>
+                  {strength.score === 1 && <span className="text-gray-500">Gunakan kombinasi angka/huruf besar</span>}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="mt-6 flex flex-col gap-3">
