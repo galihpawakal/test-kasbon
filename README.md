@@ -6,7 +6,7 @@ Web aplikasi sederhana untuk melacak utang piutang pribadi, dibangun dengan Next
 
 [https://kasbon-five.vercel.app](https://kasbon-five.vercel.app)
 
-<div style="position: relative; padding-bottom: 62.5%; height: 0;"><iframe src="https://www.loom.com/embed/eaae3a62a22747bcba6ef19befbf9a18" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+[![Video Demo](https://cdn.loom.com/sessions/thumbnails/eaae3a62a22747bcba6ef19befbf9a18-with-play.gif)](https://www.loom.com/share/eaae3a62a22747bcba6ef19befbf9a18)
 
 **Akun Demo Tester:**
 - **Email:** `galih@mail.com`
