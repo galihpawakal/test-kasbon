@@ -137,12 +137,18 @@ export function TransactionsClient() {
     }
   }
 
+  const scrollToForm = () => {
+    setTimeout(() => {
+      document.getElementById('transaction-top')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
+  }
+
   const openEditModal = (debt: Debt) => {
     setHistoryDebt(null)
     setInstallmentDebt(null)
     setEditingDebt(debt)
     setIsModalOpen(true)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    scrollToForm()
   }
 
   const openNewModal = () => {
@@ -150,21 +156,21 @@ export function TransactionsClient() {
     setInstallmentDebt(null)
     setEditingDebt(null)
     setIsModalOpen(true)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    scrollToForm()
   }
 
   const handleOpenHistory = (debt: Debt) => {
     setIsModalOpen(false)
     setInstallmentDebt(null)
     setHistoryDebt(debt)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    scrollToForm()
   }
 
   const handleOpenInstallment = (debt: Debt) => {
     setIsModalOpen(false)
     setHistoryDebt(null)
     setInstallmentDebt(debt)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    scrollToForm()
   }
 
   return (
@@ -178,6 +184,8 @@ export function TransactionsClient() {
           </Button>
         )}
       </div>
+
+      <div id="transaction-top" className="scroll-mt-6"></div>
 
       {/* Inline Forms */}
       {isModalOpen && (

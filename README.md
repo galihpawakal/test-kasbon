@@ -11,11 +11,14 @@ Web aplikasi sederhana untuk melacak utang piutang pribadi, dibangun dengan Next
 - **Password:** `12345678`
 *(Atau Anda dapat mendaftar langsung karena Email Confirmation sudah dimatikan)*
 
+> **Catatan Penting:** Demo di atas terhubung dengan **Supabase Cloud project** (sudah jalan dan siap pakai). Sedangkan instruksi **Setup Lokal** di bawah ini menggunakan **Supabase CLI + Docker** agar Anda memiliki environment development sendiri (terisolasi) di komputer Anda.
+
 ## ✨ Fitur Utama
 
 - **Pencatatan Utang & Piutang**: Lacak utang atau piutang dengan detail.
 - **Kategori**: Kelompokkan catatan ke dalam kategori spesifik.
 - **Riwayat Pembayaran (History)**: Lacak jejak perubahan dan riwayat cicilan/pembayaran utang.
+- **Group Multiple Debts**: Secara otomatis mengelompokkan dan menjumlahkan total utang/piutang berdasarkan nama orang (khusus mata uang IDR).
 - **Multi-Mata Uang (Currency)**: Mendukung berbagai jenis mata uang pada setiap pencatatan.
 - **Kontak (WhatsApp/Telp)**: Simpan nomor telepon yang bersangkutan agar mudah dihubungi.
 - **Keamanan Ketat (RLS)**: Data pengguna 100% terisolasi dan aman berkat Supabase RLS.
@@ -34,35 +37,41 @@ Web aplikasi sederhana untuk melacak utang piutang pribadi, dibangun dengan Next
 
 ## 📦 Setup & Instalasi Lokal
 
-1. **Clone repository ini**
+### Prasyarat
+- Node.js 20+
+- Docker Desktop (harus running)
+- Supabase CLI (`npm install -g supabase` atau lihat [docs](https://supabase.com/docs/guides/cli))
+
+### Langkah-langkah
+1. Clone repository:
    ```bash
    git clone <repo-url>
    cd kasbon
-   ```
-
-2. **Install Dependencies**
-   ```bash
    npm install
    ```
 
-3. **Setup Database (Supabase)**
-   - Buat project baru di Supabase.
-   - Buka SQL Editor di dashboard Supabase.
-   - Jalankan semua instruksi SQL yang ada di dalam file `supabase/migrations/20260903200000_create_debts_table.sql`. Script ini akan membuat tabel, tipe data, serta *Row Level Security* (RLS) yang ketat.
+2. Jalankan Supabase lokal (pastikan Docker Desktop sudah running):
+   ```bash
+   supabase start
+   ```
+   Perintah ini akan menjalankan seluruh container Supabase (Postgres, Auth, dll) dan otomatis menjalankan SEMUA file migration di `supabase/migrations/` secara berurutan.
 
-4. **Environment Variables**
-   - Buat file `.env.local` di root proyek.
-   - Isi dengan kredensial Supabase Anda:
-     ```env
-     NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
-     NEXT_PUBLIC_SUPABASE_ANON_KEY=ey...
-     ```
+3. Setelah `supabase start` selesai, copy nilai `API URL` dan `anon key` yang muncul di terminal ke `.env.local`:
+   ```bash
+   cp .env.example .env.local
+   ```
+   Isi dengan nilai dari output `supabase start` (bukan project cloud).
 
-5. **Jalankan Aplikasi**
+4. Jalankan aplikasi:
    ```bash
    npm run dev
    ```
    Buka `http://localhost:3000`.
+
+5. (Opsional) Kalau ada perubahan schema baru dan ingin reset database lokal ke kondisi bersih + jalankan ulang semua migration:
+   ```bash
+   supabase db reset
+   ```
 
 ## 🛡️ RLS Security Test (Manual)
 
@@ -83,12 +92,17 @@ Pendekatan teknis yang paling saya banggakan pada proyek ini adalah perpaduan **
 
 ## ⚖️ Trade-offs & Future Polish
 
-Jika saya memiliki waktu 1 hari ekstra, saya akan mengimplementasikan hal-hal berikut:
+Jika saya memiliki waktu ekstra, saya akan mengimplementasikan hal-hal berikut:
 - **Server-Side Pagination & Infinite Scroll**: Saat ini seluruh catatan di-*fetch* sekaligus, yang mana kurang ideal jika data sudah mencapai ribuan baris.
-- **Group Multiple Debts**: Menyediakan tampilan yang mengelompokkan total utang berdasarkan `counterpart_name` (nama orang), sehingga pengguna bisa melihat total akumulasi per orang.
 - **Dark Mode**: Menyempurnakan transisi dan palet warna khusus untuk mode gelap penuh menggunakan variabel Tailwind.
 - **Global Toast Notification**: Mengganti inline error/success text saat ini dengan komponen toast global (seperti `sonner` atau `react-hot-toast`) agar *feedback* lebih terlihat jelas.
 
 ## ⏱️ Time Spent
 
-Sekitar 3 Jam. Fokus terbesar dihabiskan pada penyusunan skema database yang aman dengan RLS dan pengintegrasian validasi Zod dari form (frontend) hingga ke *route handlers* (backend).
+Berlangsung selama **±15-20 jam kerja yang tersebar dalam 3 hari (24 commit)**. Scope pekerjaan cukup luas meliputi: 
+- Setup infrastruktur (Docker + Supabase CLI).
+- Penulisan 8 file migrasi database secara *idempotent* (termasuk skema tabel `debts`, `categories`, `installments`, dan `debt_history`).
+- Pembuatan Trigger PL/pgSQL untuk auto-log history dan kalkulasi cicilan.
+- Audit dan implementasi ketat Row Level Security (RLS) di semua tabel.
+- Refactor frontend menggunakan TypeScript (Strict Mode) dan SWR untuk efek *Optimistic UI*.
+- Pembuatan fitur CRUD komplit (dengan filter, search, form validasi Zod) dan desain responsif menggunakan TailwindCSS.
