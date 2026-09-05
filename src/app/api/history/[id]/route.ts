@@ -5,7 +5,6 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  console.log('HIT HISTORY ROUTE!')
   try {
     const { id } = await params
     const supabase = await createClient()
@@ -32,7 +31,7 @@ export async function GET(
 
     return NextResponse.json(data)
   } catch (error: any) {
-    console.error('Error in GET /api/debts/[id]/history:', error)
+    console.error('Error in GET /api/history/[id]:', error)
     return NextResponse.json({ error: 'Gagal mengambil riwayat' }, { status: 500 })
   }
 }

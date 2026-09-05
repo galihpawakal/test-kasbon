@@ -12,7 +12,7 @@ export function DebtHistory({ debtId }: { debtId: string }) {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const res = await fetch(`/api/debts/${debtId}/history`)
+        const res = await fetch(`/api/history/${debtId}`)
         if (!res.ok) throw new Error('Gagal memuat riwayat')
         const data = await res.json()
         setHistory(data)

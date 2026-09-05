@@ -56,6 +56,8 @@ export function DebtFormModal({ isOpen, onClose, onSuccess, editingDebt }: DebtF
           note: editingDebt.note || '',
           due_date: editingDebt.due_date || '',
           counterpart_phone: editingDebt.counterpart_phone || '',
+          category_id: editingDebt.category_id || '',
+          currency: editingDebt.currency || 'IDR',
         })
       } else {
         reset({
@@ -205,7 +207,7 @@ export function DebtFormModal({ isOpen, onClose, onSuccess, editingDebt }: DebtF
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="due_date">Tanggal (Opsional)</Label>
+            <Label htmlFor="due_date">Jatuh Tempo (Opsional)</Label>
             <Input
               id="due_date"
               type="date"
@@ -278,7 +280,6 @@ export function DebtFormModal({ isOpen, onClose, onSuccess, editingDebt }: DebtF
           </div>
         </form>
 
-        {editingDebt && <DebtHistory debtId={editingDebt.id} />}
       </DialogContent>
       
       <CategoryManagerModal isOpen={isCategoryModalOpen} onClose={() => setIsCategoryModalOpen(false)} />

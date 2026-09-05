@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import useSWR from 'swr'
 import { formatRupiah, formatRelativeTime } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -8,8 +8,10 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { MoreHorizontal, Plus, Loader2, Printer, Phone } from 'lucide-react'
+import { MoreHorizontal, Plus, Loader2, Printer, Phone, History } from 'lucide-react'
 import { DebtFormModal } from './DebtFormModal'
+import { DebtHistory } from './DebtHistory'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -26,6 +28,9 @@ export function DashboardClient() {
   const [isGrouped, setIsGrouped] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingDebt, setEditingDebt] = useState<any>(null)
+  const [historyDebt, setHistoryDebt] = useState<any>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
 
   // Debounce search query
   useEffect(() => {
@@ -55,6 +60,39 @@ export function DashboardClient() {
 
   const { data: debts, error, isLoading, mutate } = useSWR(apiUrl, fetcher)
   const { data: categories } = useSWR('/api/categories', fetcher)
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [debouncedSearch, statusFilter, typeFilter, categoryFilter, sortConfig, isGrouped])
+
+  // Pagination & Grouping logic
+  const totalItems = debts?.length || 0
+  const totalPages = Math.ceil(totalItems / itemsPerPage)
+  const paginatedDebts = debts?.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+
+  const groupedData = useMemo(() => {
+    if (!debts || !isGrouped) return {}
+    return debts.reduce((acc: any, debt: any) => {
+      if (!acc[debt.counterpart_name]) {
+        acc[debt.counterpart_name] = { items: [], totalOwedToMe: 0, totalIOwe: 0 }
+      }
+      acc[debt.counterpart_name].items.push(debt)
+      if (!debt.settled_at) {
+        const isIDR = !debt.currency || debt.currency === 'IDR'
+        if (isIDR) {
+          if (debt.type === 'owed_to_me') acc[debt.counterpart_name].totalOwedToMe += debt.amount
+          else if (debt.type === 'i_owe') acc[debt.counterpart_name].totalIOwe += debt.amount
+        }
+      }
+      return acc
+    }, {})
+  }, [debts, isGrouped])
+
+  const groupEntries = Object.entries(groupedData)
+  const totalGroups = groupEntries.length
+  const totalGroupPages = Math.ceil(totalGroups / itemsPerPage)
+  const paginatedGroups = groupEntries.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
 
   // Calculate summaries
   let totalOwedToMe = 0
@@ -477,32 +515,18 @@ export function DashboardClient() {
             </div>
           )}
 
-          {!isLoading && !isGrouped && debts?.map((debt: any) => (
+          {!isLoading && !isGrouped && paginatedDebts?.map((debt: any) => (
             <DebtItem 
               key={debt.id} 
               debt={debt} 
               onMarkSettled={handleMarkSettled} 
               onEdit={openEditModal} 
+              onHistory={setHistoryDebt}
               onDelete={handleDelete} 
             />
           ))}
 
-          {!isLoading && isGrouped && Object.entries(
-            debts?.reduce((acc: any, debt: any) => {
-              if (!acc[debt.counterpart_name]) {
-                acc[debt.counterpart_name] = { items: [], totalOwedToMe: 0, totalIOwe: 0 }
-              }
-              acc[debt.counterpart_name].items.push(debt)
-              if (!debt.settled_at) {
-                const isIDR = !debt.currency || debt.currency === 'IDR'
-                if (isIDR) {
-                  if (debt.type === 'owed_to_me') acc[debt.counterpart_name].totalOwedToMe += debt.amount
-                  else if (debt.type === 'i_owe') acc[debt.counterpart_name].totalIOwe += debt.amount
-                }
-              }
-              return acc
-            }, {}) || {}
-          ).map(([name, group]: [string, any]) => {
+          {!isLoading && isGrouped && paginatedGroups.map(([name, group]: [string, any]) => {
             const net = group.totalOwedToMe - group.totalIOwe
             return (
               <details key={name} className="group border-b border-gray-100 last:border-0">
@@ -528,6 +552,7 @@ export function DashboardClient() {
                       debt={debt} 
                       onMarkSettled={handleMarkSettled} 
                       onEdit={openEditModal} 
+                      onHistory={setHistoryDebt}
                       onDelete={handleDelete} 
                     />
                   ))}
@@ -536,6 +561,43 @@ export function DashboardClient() {
             )
           })}
         </div>
+
+        {/* Pagination controls */}
+        {!isLoading && !error && (totalItems > 0) && (
+          <div className="flex flex-col sm:flex-row items-center justify-between p-4 sm:px-6 border-t border-gray-100 gap-4 bg-gray-50/50 rounded-b-xl">
+            <div className="text-sm text-gray-500">
+              Menampilkan {isGrouped ? (
+                <><b>{(currentPage - 1) * itemsPerPage + (totalGroups > 0 ? 1 : 0)}</b> - <b>{Math.min(currentPage * itemsPerPage, totalGroups)}</b> dari <b>{totalGroups}</b> grup ({totalItems} catatan)</>
+              ) : (
+                <><b>{(currentPage - 1) * itemsPerPage + (totalItems > 0 ? 1 : 0)}</b> - <b>{Math.min(currentPage * itemsPerPage, totalItems)}</b> dari <b>{totalItems}</b> catatan</>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="shadow-sm"
+              >
+                Sebelumnya
+              </Button>
+              <div className="text-sm font-medium px-2 text-gray-600">
+                Hal {currentPage} dari {isGrouped ? totalGroupPages : totalPages}
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, isGrouped ? Math.max(totalGroupPages, 1) : Math.max(totalPages, 1)))}
+                disabled={currentPage === (isGrouped ? Math.max(totalGroupPages, 1) : Math.max(totalPages, 1))}
+                className="shadow-sm"
+              >
+                Selanjutnya
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
 
       <DebtFormModal 
@@ -544,11 +606,20 @@ export function DashboardClient() {
         onSuccess={() => mutate()} 
         editingDebt={editingDebt} 
       />
+
+      <Dialog open={!!historyDebt} onOpenChange={(open) => !open && setHistoryDebt(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Riwayat Kasbon</DialogTitle>
+          </DialogHeader>
+          {historyDebt && <DebtHistory debtId={historyDebt.id} />}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
 
-function DebtItem({ debt, onMarkSettled, onEdit, onDelete }: { debt: any, onMarkSettled: any, onEdit: any, onDelete: any }) {
+function DebtItem({ debt, onMarkSettled, onEdit, onHistory, onDelete }: { debt: any, onMarkSettled: any, onEdit: any, onHistory: any, onDelete: any }) {
   return (
     <div className="p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-colors hover:bg-gray-50/50 border-b border-gray-100 last:border-0 w-full overflow-hidden">
       <div className="flex-1 min-w-0 w-full">
@@ -575,7 +646,8 @@ function DebtItem({ debt, onMarkSettled, onEdit, onDelete }: { debt: any, onMark
             <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-50 whitespace-nowrap">Belum Lunas</Badge>
           )}
           {debt.category && (
-            <Badge variant="outline" className="text-xs" style={{ borderColor: debt.category.color || '#e5e7eb', color: debt.category.color || '#374151' }}>
+            <Badge variant="outline" className="text-[10px] font-medium text-gray-600 bg-white shadow-sm flex items-center gap-1.5 px-2 py-0">
+              <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: debt.category.color || '#9ca3af' }} />
               {debt.category.name}
             </Badge>
           )}
@@ -591,11 +663,14 @@ function DebtItem({ debt, onMarkSettled, onEdit, onDelete }: { debt: any, onMark
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
             
             if (diffDays < 0) {
-              return <Badge variant="destructive" className="bg-red-500 hover:bg-red-600 text-[10px] px-1.5 py-0">Terlambat {Math.abs(diffDays)} hari</Badge>
+              return <Badge variant="destructive" className="bg-red-500 text-white hover:bg-red-600 text-[10px] px-1.5 py-0">Terlambat {Math.abs(diffDays)} hari</Badge>
+            } else if (diffDays === 0) {
+              return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200 text-[10px] px-1.5 py-0 border-yellow-200">Jatuh tempo hari ini</Badge>
             } else if (diffDays <= 3) {
               return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200 text-[10px] px-1.5 py-0 border-yellow-200">Jatuh tempo H-{diffDays}</Badge>
+            } else {
+              return <Badge variant="outline" className="text-gray-500 text-[10px] px-1.5 py-0">Jatuh tempo {dueDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</Badge>
             }
-            return null
           })()}
         </div>
         <div className="text-sm text-gray-500 flex items-center gap-2">
@@ -637,6 +712,9 @@ function DebtItem({ debt, onMarkSettled, onEdit, onDelete }: { debt: any, onMark
             
             <DropdownMenuItem onClick={() => onEdit(debt)}>
               Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onHistory(debt)}>
+              Riwayat
             </DropdownMenuItem>
             <DropdownMenuItem className="text-red-600" onClick={() => onDelete(debt.id)}>
               Hapus
