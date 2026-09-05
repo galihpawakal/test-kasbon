@@ -1,13 +1,23 @@
+'use client'
+
 import Link from 'next/link'
 import { signup } from '@/app/login/actions'
 import { SubmitButton } from '@/components/submit-button'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 
-export default async function RegisterPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string }>
-}) {
-  const { error } = await searchParams
+export default function RegisterPage() {
+  const router = useRouter()
+
+  const handleSignup = async (formData: FormData) => {
+    const result = await signup(formData)
+    if (result?.error) {
+      toast.error(result.error)
+    } else if (result?.success) {
+      toast.success('Berhasil daftar akun Anda. Silakan login.')
+      router.push('/login')
+    }
+  }
 
   return (
     <div className="flex h-screen w-full items-center justify-center px-4 bg-gray-50">
@@ -17,13 +27,7 @@ export default async function RegisterPage({
           <p className="text-gray-500 text-sm mt-2">Buat akun untuk mulai mencatat utang piutang.</p>
         </div>
 
-        {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-6 border border-red-100">
-            {error}
-          </div>
-        )}
-
-        <form className="flex flex-col gap-4">
+        <form action={handleSignup} className="flex flex-col gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="name">
               Nama Lengkap
@@ -66,7 +70,7 @@ export default async function RegisterPage({
           </div>
 
           <div className="mt-4 flex flex-col gap-2">
-            <SubmitButton formAction={signup} className="w-full" pendingText="Mendaftar...">
+            <SubmitButton className="w-full" pendingText="Mendaftar...">
               Daftar Akun Baru
             </SubmitButton>
           </div>

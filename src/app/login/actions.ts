@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { createClient } from '@/utils/supabase/server'
 
 export async function login(formData: FormData) {
@@ -15,11 +16,11 @@ export async function login(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword(data)
 
   if (error) {
-    redirect('/login?error=' + encodeURIComponent(error.message))
+    return { error: error.message }
   }
 
   revalidatePath('/', 'layout')
-  redirect('/')
+  return { success: true }
 }
 
 export async function signup(formData: FormData) {
@@ -38,10 +39,10 @@ export async function signup(formData: FormData) {
   })
 
   if (error) {
-    redirect('/register?error=' + encodeURIComponent(error.message))
+    return { error: error.message }
   }
 
-  redirect('/login?success=' + encodeURIComponent('Berhasil daftar akun Anda. Silakan login.'))
+  return { success: true }
 }
 
 export async function logout() {

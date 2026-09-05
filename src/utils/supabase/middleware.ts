@@ -6,8 +6,13 @@ export async function updateSession(request: NextRequest) {
     request,
   })
 
+  let supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  if (process.env.NODE_ENV === 'development' && supabaseUrl.includes('localhost')) {
+    supabaseUrl = supabaseUrl.replace('localhost', 'host.docker.internal')
+  }
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    supabaseUrl,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {

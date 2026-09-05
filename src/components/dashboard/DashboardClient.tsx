@@ -11,6 +11,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { MoreHorizontal, Plus, Loader2, Printer, Phone } from 'lucide-react'
 import { DebtFormModal } from './DebtFormModal'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -135,15 +137,166 @@ export function DashboardClient() {
     setIsModalOpen(true)
   }
 
+  const generatePDF = () => {
+    if (!debts || debts.length === 0) {
+      alert('Tidak ada data untuk diekspor.')
+      return
+    }
+
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.getWidth()
+    
+    // Header - Centered Title
+    doc.setFontSize(22)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(30, 30, 45)
+    doc.text('Laporan Kasbon', pageWidth / 2, 22, { align: 'center' })
+    
+    // Tanggal Cetak
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(100)
+    const dateStr = new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })
+    doc.text(`Tanggal Cetak: ${dateStr}`, 14, 32)
+    
+    // Line separator
+    doc.setDrawColor(220, 220, 220)
+    doc.line(14, 35, pageWidth - 14, 35)
+
+    // Summary Cards Dimensions
+    const cardY = 42
+    const cardHeight = 28
+    const margin = 14
+    const totalWidth = pageWidth - 2 * margin
+    const cardWidth = totalWidth / 3
+
+    // Card 1: Dihutang ke Saya
+    doc.setFillColor(240, 253, 244) // bg-green-50
+    doc.setDrawColor(34, 197, 94) // border-green-500
+    doc.rect(margin, cardY, cardWidth, cardHeight, 'FD')
+    
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(50, 50, 50)
+    doc.text('Dihutang ke Saya', margin + 5, cardY + 8)
+    doc.setFontSize(16)
+    doc.setTextColor(22, 163, 74) // text-green-600
+    doc.text(formatRupiah(totalOwedToMe), margin + 5, cardY + 22)
+
+    // Card 2: Saya Hutang
+    doc.setFillColor(254, 242, 242) // bg-red-50
+    doc.setDrawColor(239, 68, 68) // border-red-500
+    doc.rect(margin + cardWidth, cardY, cardWidth, cardHeight, 'FD')
+    
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(50, 50, 50)
+    doc.text('Saya Hutang', margin + cardWidth + 5, cardY + 8)
+    doc.setFontSize(16)
+    doc.setTextColor(220, 38, 38) // text-red-600
+    doc.text(formatRupiah(totalIOwe), margin + cardWidth + 5, cardY + 22)
+
+    // Card 3: Saldo Netto
+    doc.setFillColor(248, 250, 252) // bg-slate-50
+    doc.setDrawColor(148, 163, 184) // border-slate-400
+    doc.rect(margin + 2 * cardWidth, cardY, cardWidth, cardHeight, 'FD')
+    
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(50, 50, 50)
+    doc.text('Saldo Netto', margin + 2 * cardWidth + 5, cardY + 8)
+    doc.setFontSize(16)
+    doc.setTextColor(30, 41, 59) // text-slate-800
+    doc.text(formatRupiah(net), margin + 2 * cardWidth + 5, cardY + 22)
+
+    // Subtitle
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(40, 40, 40)
+    doc.text('Rincian Transaksi', 14, cardY + cardHeight + 15)
+
+    // Table Data
+    let tableData: any[] = []
+    
+    debts.forEach((debt: any, index: number) => {
+      const typeStr = debt.type === 'owed_to_me' ? 'Dihutang' : 'Hutang'
+      const statusStr = debt.settled_at ? 'Lunas' : 'Belum Lunas'
+      const txDateStr = new Date(debt.created_at).toLocaleDateString('id-ID')
+      const catStr = debt.category?.name || '-'
+      const amountStr = (!debt.currency || debt.currency === 'IDR') 
+        ? formatRupiah(debt.amount) 
+        : new Intl.NumberFormat('en-US', { style: 'currency', currency: debt.currency }).format(debt.amount)
+
+      tableData.push([
+        index + 1,
+        debt.counterpart_name,
+        typeStr,
+        amountStr,
+        catStr,
+        statusStr,
+        txDateStr,
+        debt.note || '-'
+      ])
+    })
+
+    autoTable(doc, {
+      startY: cardY + cardHeight + 20,
+      head: [['No', 'Nama', 'Tipe', 'Nominal', 'Kategori', 'Status', 'Tanggal', 'Keterangan']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillColor: [25, 30, 45], textColor: 255, fontStyle: 'bold' },
+      styles: { fontSize: 9, cellPadding: 4 },
+      alternateRowStyles: { fillColor: [250, 250, 250] },
+      columnStyles: {
+        0: { cellWidth: 10, halign: 'center' },
+        3: { halign: 'right' }
+      },
+      didParseCell: function(data: any) {
+        if (data.section === 'body') {
+          // Colorizing "Tipe" column
+          if (data.column.index === 2) {
+            if (data.cell.raw === 'Dihutang') {
+              data.cell.styles.textColor = [22, 163, 74] // Green
+            } else if (data.cell.raw === 'Hutang') {
+              data.cell.styles.textColor = [220, 38, 38] // Red
+            }
+          }
+          // Colorizing "Status" column
+          if (data.column.index === 5) {
+            if (data.cell.raw === 'Belum Lunas') {
+              data.cell.styles.textColor = [220, 38, 38] // Red
+            } else if (data.cell.raw === 'Lunas') {
+              data.cell.styles.textColor = [22, 163, 74] // Green
+            }
+          }
+        }
+      }
+    })
+
+    // Footer
+    const pageCount = (doc as any).internal.getNumberOfPages()
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i)
+      doc.setFontSize(8)
+      doc.setTextColor(150)
+      doc.setFont('helvetica', 'normal')
+      doc.text(`Dicetak pada: ${dateStr} - Laporan Kasbon`, 14, doc.internal.pageSize.getHeight() - 10)
+      doc.text(`Halaman ${i} dari ${pageCount}`, pageWidth - 14, doc.internal.pageSize.getHeight() - 10, { align: 'right' })
+    }
+
+    const fileName = `Laporan_Kasbon_${new Date().toLocaleDateString('id-ID').replace(/\//g, '-')}.pdf`
+    doc.save(fileName)
+  }
+
   return (
-    <div className="w-full max-w-5xl mx-auto py-8 px-4 sm:px-6 print:p-0 print:max-w-none">
-      <div className="flex justify-between items-center mb-8 print:hidden">
+    <div className="w-full max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 print:p-0 print:max-w-none">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 print:hidden">
         <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Kasbon</h1>
-        <div className="flex items-center gap-2">
-          <Button onClick={() => window.print()} variant="outline" className="shadow-sm">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <Button onClick={generatePDF} variant="outline" className="shadow-sm flex-1 sm:flex-none">
             <Printer className="mr-2 h-4 w-4" /> Export PDF
           </Button>
-          <Button onClick={openNewModal} className="shadow-sm">
+          <Button onClick={openNewModal} className="shadow-sm flex-1 sm:flex-none">
             <Plus className="mr-2 h-4 w-4" /> Catat Baru
           </Button>
         </div>
@@ -215,8 +368,8 @@ export function DashboardClient() {
       </Card>
 
       {/* Filters & Search */}
-      <div className="flex flex-col sm:flex-row flex-wrap gap-4 mb-6 print:hidden">
-        <div className="w-full sm:flex-1 min-w-[200px] relative">
+      <div className="flex flex-col lg:flex-row flex-wrap gap-4 mb-6 print:hidden">
+        <div className="w-full lg:flex-1 relative">
           <input
             type="text"
             placeholder="Cari nama orang..."
@@ -226,65 +379,80 @@ export function DashboardClient() {
           />
         </div>
         
-        <Select value={sortConfig} onValueChange={(val) => val && setSortConfig(val)}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Urutkan" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="created_desc">Terbaru</SelectItem>
-            <SelectItem value="created_asc">Terlama</SelectItem>
-            <SelectItem value="amount_desc">Jumlah Terbesar</SelectItem>
-            <SelectItem value="amount_asc">Jumlah Terkecil</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="grid grid-cols-2 sm:flex sm:flex-row sm:flex-wrap gap-3 w-full lg:w-auto">
+          <Select value={sortConfig} onValueChange={(val) => val && setSortConfig(val)}>
+            <SelectTrigger className="w-full sm:w-[150px] bg-white">
+              <SelectValue placeholder="Urutkan">
+                {sortConfig === 'created_desc' ? 'Terbaru' : 
+                 sortConfig === 'created_asc' ? 'Terlama' :
+                 sortConfig === 'amount_desc' ? 'Jumlah Terbesar' :
+                 sortConfig === 'amount_asc' ? 'Jumlah Terkecil' : 'Urutkan'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="created_desc">Terbaru</SelectItem>
+              <SelectItem value="created_asc">Terlama</SelectItem>
+              <SelectItem value="amount_desc">Jumlah Terbesar</SelectItem>
+              <SelectItem value="amount_asc">Jumlah Terkecil</SelectItem>
+            </SelectContent>
+          </Select>
 
-        <Select value={statusFilter} onValueChange={(val) => val && setStatusFilter(val)}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="semua">Semua Status</SelectItem>
-            <SelectItem value="belum_lunas">Belum Lunas</SelectItem>
-            <SelectItem value="lunas">Lunas</SelectItem>
-          </SelectContent>
-        </Select>
+          <Select value={statusFilter} onValueChange={(val) => val && setStatusFilter(val)}>
+            <SelectTrigger className="w-full sm:w-[130px] bg-white">
+              <SelectValue placeholder="Status">
+                {statusFilter === 'semua' ? 'Semua Status' :
+                 statusFilter === 'belum_lunas' ? 'Belum Lunas' :
+                 statusFilter === 'lunas' ? 'Lunas' : 'Status'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="semua">Semua Status</SelectItem>
+              <SelectItem value="belum_lunas">Belum Lunas</SelectItem>
+              <SelectItem value="lunas">Lunas</SelectItem>
+            </SelectContent>
+          </Select>
 
-        <Select value={typeFilter} onValueChange={(val) => val && setTypeFilter(val)}>
-          <SelectTrigger className="w-full sm:w-[150px]">
-            <SelectValue placeholder="Tipe" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="semua">Semua Tipe</SelectItem>
-            <SelectItem value="owed_to_me">Dihutang</SelectItem>
-            <SelectItem value="i_owe">Hutang</SelectItem>
-          </SelectContent>
-        </Select>
+          <Select value={typeFilter} onValueChange={(val) => val && setTypeFilter(val)}>
+            <SelectTrigger className="w-full sm:w-[120px] bg-white">
+              <SelectValue placeholder="Tipe">
+                {typeFilter === 'semua' ? 'Semua Tipe' :
+                 typeFilter === 'owed_to_me' ? 'Dihutang' :
+                 typeFilter === 'i_owe' ? 'Hutang' : 'Tipe'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="semua">Semua Tipe</SelectItem>
+              <SelectItem value="owed_to_me">Dihutang</SelectItem>
+              <SelectItem value="i_owe">Hutang</SelectItem>
+            </SelectContent>
+          </Select>
 
-        <Select value={categoryFilter} onValueChange={(val) => val && setCategoryFilter(val)}>
-          <SelectTrigger className="w-full sm:w-[150px]">
-            <SelectValue placeholder="Kategori">
-              {categoryFilter === 'semua' ? 'Semua Kategori' : categories?.find((c: any) => c.id === categoryFilter)?.name || 'Kategori'}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="semua">Semua Kategori</SelectItem>
-            {categories?.map((c: any) => (
-              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        
-        <div className="flex items-center gap-2">
-          <input 
-            type="checkbox" 
-            id="group-toggle"
-            checked={isGrouped}
-            onChange={(e) => setIsGrouped(e.target.checked)}
-            className="w-4 h-4 text-black border-gray-300 rounded focus:ring-black"
-          />
-          <label htmlFor="group-toggle" className="text-sm font-medium text-gray-700 select-none cursor-pointer">
-            Grup per Orang
-          </label>
+          <Select value={categoryFilter} onValueChange={(val) => val && setCategoryFilter(val)}>
+            <SelectTrigger className="w-full sm:w-[140px] bg-white">
+              <SelectValue placeholder="Kategori">
+                {categoryFilter === 'semua' ? 'Semua Kategori' : categories?.find((c: any) => c.id === categoryFilter)?.name || 'Kategori'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="semua">Semua Kategori</SelectItem>
+              {categories?.map((c: any) => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <div className="flex items-center gap-2 col-span-2 sm:col-span-1 justify-end sm:justify-start pt-1 sm:pt-0">
+            <input 
+              type="checkbox" 
+              id="group-toggle"
+              checked={isGrouped}
+              onChange={(e) => setIsGrouped(e.target.checked)}
+              className="w-4 h-4 text-black border-gray-300 rounded focus:ring-black"
+            />
+            <label htmlFor="group-toggle" className="text-sm font-medium text-gray-700 select-none cursor-pointer">
+              Grup per Orang
+            </label>
+          </div>
         </div>
       </div>
 
@@ -382,10 +550,10 @@ export function DashboardClient() {
 
 function DebtItem({ debt, onMarkSettled, onEdit, onDelete }: { debt: any, onMarkSettled: any, onEdit: any, onDelete: any }) {
   return (
-    <div className="p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-colors hover:bg-gray-50/50 border-b border-gray-100 last:border-0">
-      <div className="flex-1">
-        <div className="flex items-center gap-3 mb-1">
-          <h3 className="font-semibold text-gray-900 text-lg">{debt.counterpart_name}</h3>
+    <div className="p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-colors hover:bg-gray-50/50 border-b border-gray-100 last:border-0 w-full overflow-hidden">
+      <div className="flex-1 min-w-0 w-full">
+        <div className="flex flex-wrap items-center gap-2 mb-2">
+          <h3 className="font-semibold text-gray-900 text-lg truncate max-w-full sm:max-w-[250px]">{debt.counterpart_name}</h3>
           {debt.counterpart_phone && (
             <a 
               href={`https://wa.me/${debt.counterpart_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Halo ${debt.counterpart_name}, ini reminder bahwa kamu memiliki tagihan/kasbon yang belum lunas sebesar ${formatRupiah(debt.amount)}.`)}`}
@@ -398,13 +566,13 @@ function DebtItem({ debt, onMarkSettled, onEdit, onDelete }: { debt: any, onMark
               {debt.counterpart_phone}
             </a>
           )}
-          <Badge variant="outline" className={debt.type === 'owed_to_me' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-orange-50 text-orange-700 border-orange-200'}>
+          <Badge variant="outline" className={debt.type === 'owed_to_me' ? 'bg-green-50 text-green-700 border-green-200 whitespace-nowrap' : 'bg-orange-50 text-orange-700 border-orange-200 whitespace-nowrap'}>
             {debt.type === 'owed_to_me' ? 'Dihutang' : 'Hutang'}
           </Badge>
           {debt.settled_at ? (
-            <Badge variant="secondary" className="bg-gray-100 text-gray-600 hover:bg-gray-100">Lunas</Badge>
+            <Badge variant="secondary" className="bg-gray-100 text-gray-600 hover:bg-gray-100 whitespace-nowrap">Lunas</Badge>
           ) : (
-            <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-50">Belum Lunas</Badge>
+            <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-50 whitespace-nowrap">Belum Lunas</Badge>
           )}
           {debt.category && (
             <Badge variant="outline" className="text-xs" style={{ borderColor: debt.category.color || '#e5e7eb', color: debt.category.color || '#374151' }}>
@@ -441,7 +609,7 @@ function DebtItem({ debt, onMarkSettled, onEdit, onDelete }: { debt: any, onMark
         </div>
       </div>
       
-      <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+      <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end mt-3 sm:mt-0">
         <div className={`font-bold text-lg ${debt.type === 'owed_to_me' ? 'text-green-600' : 'text-red-600'} ${debt.settled_at ? 'line-through text-gray-400' : ''}`}>
           {(!debt.currency || debt.currency === 'IDR') 
             ? formatRupiah(debt.amount) 
