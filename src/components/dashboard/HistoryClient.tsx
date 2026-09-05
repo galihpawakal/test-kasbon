@@ -5,6 +5,7 @@ import useSWR from 'swr'
 import { formatRelativeTime, formatRupiah } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
+import { Debt, Category, DebtHistoryItem } from '@/types'
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -52,13 +53,13 @@ export function HistoryClient() {
     }
   }
 
-  const formatFieldValue = (field: string, value: any) => {
+  const formatFieldValue = (field: string, value: string | number) => {
     if (value === null || value === undefined || value === '') return '-'
     
     switch (field) {
       case 'category_id':
         if (categories) {
-          const category = categories.find((c: any) => c.id === value)
+          const category = categories.find((c: Category) => c.id === value)
           return category ? category.name : value
         }
         return value
@@ -80,7 +81,7 @@ export function HistoryClient() {
     }
   }
 
-  const filteredHistory = history?.filter((h: any) => {
+  const filteredHistory = history?.filter((h: DebtHistoryItem) => {
     const counterpartName = h.debts?.counterpart_name?.toLowerCase() || ''
     const action = actionText(h.action).toLowerCase()
     const q = search.toLowerCase()
@@ -107,10 +108,10 @@ export function HistoryClient() {
 
       <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col gap-6 w-full">
         {paginatedHistory.length === 0 ? (
-          <div className="text-gray-500 text-center py-8">Belum ada riwayat perubahan yang sesuai.</div>
+          <div className="text-gray-500 text-center py-8">Belum ada riwayat perubahan yang sesuai nih.</div>
         ) : (
           <div className="space-y-8 sm:space-y-6 relative before:absolute before:top-0 before:bottom-0 before:left-[15px] before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-200 before:to-transparent z-0">
-            {paginatedHistory.map((h: any) => (
+            {paginatedHistory.map((h: DebtHistoryItem) => (
               <div key={h.id} className="relative flex items-start w-full min-w-0">
                 <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 border border-blue-100 shrink-0 relative mr-3 sm:mr-4">
                   <div className="w-2.5 h-2.5 bg-blue-500 rounded-full"></div>

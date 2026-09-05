@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Loader2, Plus, Trash2, Edit2, AlertCircle, FolderOpen } from 'lucide-react'
 import useSWR from 'swr'
 import { cn } from '@/lib/utils'
+import { Debt, Category } from '@/types'
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -39,7 +40,7 @@ export function CategoriesClient() {
 
   const getCategoryUsageCount = (categoryId: string) => {
     if (!debts) return 0
-    return debts.filter((d: any) => d.category_id === categoryId).length
+    return debts.filter((d: Debt) => d.category_id === categoryId).length
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -66,8 +67,8 @@ export function CategoriesClient() {
 
       await mutate()
       resetForm()
-    } catch (err: any) {
-      setFormError(err.message)
+    } catch (err: unknown) {
+      setFormError(err instanceof Error ? err.message : 'Gagal menyimpan kategori')
     } finally {
       setIsSubmitting(false)
     }
@@ -75,9 +76,9 @@ export function CategoriesClient() {
 
   const handleDelete = async (id: string) => {
     const usageCount = getCategoryUsageCount(id)
-    let message = 'Yakin ingin menghapus kategori ini? Data utang terkait tidak akan terhapus, namun tidak akan memiliki kategori.'
+    let message = 'Yakin mau hapus kategori ini? Kasbon yang udah pakai kategori ini bakal jadi tanpa kategori ya.'
     if (usageCount > 0) {
-      message = `Kategori ini dipakai di ${usageCount} transaksi. Yakin hapus? Transaksi terkait akan menjadi 'Tanpa Kategori'.`
+      message = `Kategori ini dipakai di ${usageCount} transaksi. Yakin mau hapus? Transaksi terkait bakal jadi 'Tanpa Kategori' nih.`
     }
     
     if (!confirm(message)) return
@@ -86,12 +87,12 @@ export function CategoriesClient() {
       const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Gagal menghapus kategori')
       mutate()
-    } catch (err: any) {
-      alert(err.message)
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Gagal menghapus kategori')
     }
   }
 
-  const handleEdit = (cat: any) => {
+  const handleEdit = (cat: Category) => {
     setEditingId(cat.id)
     setName(cat.name)
     setColor(cat.color || getStringColor(cat.name))
@@ -215,8 +216,8 @@ export function CategoriesClient() {
               <div className="w-16 h-16 bg-blue-50 border border-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <FolderOpen className="h-8 w-8 text-blue-500" />
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Belum ada kategori</h3>
-              <p className="text-gray-500 text-sm mb-5 max-w-sm mx-auto">Yuk, buat kategori pertama Anda untuk mengelompokkan catatan kasbon agar lebih rapi.</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Belum ada kategori nih</h3>
+              <p className="text-gray-500 text-sm mb-5 max-w-sm mx-auto">Yuk, buat kategori pertama kamu untuk ngelompokkin catatan kasbon biar lebih rapi.</p>
               {!isFormOpen && (
                 <Button onClick={() => setIsFormOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
                   <Plus className="h-4 w-4 mr-2" /> Buat Kategori Pertama
@@ -225,7 +226,7 @@ export function CategoriesClient() {
             </div>
           )}
           
-          {paginatedCategories.map((cat: any) => {
+          {paginatedCategories.map((cat: Category) => {
             const usageCount = getCategoryUsageCount(cat.id)
             const catColor = cat.color || getStringColor(cat.name)
             

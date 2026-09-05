@@ -48,7 +48,7 @@ export async function PATCH(
     }
 
     return NextResponse.json(data)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in PATCH /api/categories/[id]:', error)
     return NextResponse.json({ error: 'Gagal memperbarui kategori' }, { status: 500 })
   }
@@ -80,7 +80,7 @@ export async function DELETE(
     }
 
     return NextResponse.json({ success: true })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in DELETE /api/categories/[id]:', error)
     return NextResponse.json({ error: 'Gagal menghapus kategori' }, { status: 500 })
   }

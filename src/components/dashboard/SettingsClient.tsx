@@ -54,8 +54,8 @@ export function SettingsClient({ userEmail }: { userEmail: string }) {
       toast.success('Password berhasil diperbarui')
       setNewPassword('')
       setConfirmPassword('')
-    } catch (err: any) {
-      toast.error(err.message || 'Gagal memperbarui password')
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Gagal menyimpan perubahan')
     } finally {
       setIsUpdating(false)
     }

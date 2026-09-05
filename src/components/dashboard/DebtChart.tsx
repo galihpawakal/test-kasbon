@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { formatRupiah } from '@/lib/utils'
+import { Debt } from '@/types'
 
 interface DebtChartProps {
   totalOwedToMe: number
@@ -33,7 +34,8 @@ export function DebtChart({ totalOwedToMe, totalIOwe }: DebtChartProps) {
               <XAxis type="number" hide />
               <YAxis dataKey="name" type="category" width={130} tick={{ fill: '#4b5563', fontSize: 13 }} axisLine={false} tickLine={false} />
               <Tooltip 
-                formatter={(value: any) => [formatRupiah(Number(value)), 'Total']}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Recharts internal type limit
+                formatter={(value: any) => [formatRupiah(Number(value) || 0), 'Nominal']}
                 cursor={{ fill: '#f3f4f6' }}
                 contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
               />

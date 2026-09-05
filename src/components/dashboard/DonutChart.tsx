@@ -3,8 +3,9 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
 import { formatRupiah } from '@/lib/utils'
 import { useMemo } from 'react'
+import { Debt, Category } from '@/types'
 
-export function DonutChart({ debts, categories }: { debts: any[], categories: any[] }) {
+export function DonutChart({ debts, categories }: { debts: Debt[], categories: Category[] }) {
   const data = useMemo(() => {
     if (!debts) return []
 
@@ -70,6 +71,7 @@ export function DonutChart({ debts, categories }: { debts: any[], categories: an
                 ))}
               </Pie>
               <Tooltip 
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Recharts internal type limit
                 formatter={(value: any) => [formatRupiah(Number(value) || 0), 'Nominal']}
                 contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px', padding: '8px' }}
                 itemStyle={{ color: '#1f2937' }}

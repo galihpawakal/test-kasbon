@@ -34,12 +34,10 @@ export async function PATCH(
       )
     }
 
-    const validData: any = validationResult.data
+    const validData = validationResult.data
 
-    // If settled is explicitly sent in body (from client optimistic UI)
-    if (body.settled_at !== undefined) {
-      validData.settled_at = body.settled_at
-    }
+    // Field explicitly sent in body (from client optimistic UI)
+    // Now handled natively by Zod schema
 
     // If explicitly updating amount, validate against total_paid
     if (validData.amount !== undefined) {
@@ -77,7 +75,7 @@ export async function PATCH(
     }
 
     return NextResponse.json(data)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in PATCH /api/debts/[id]:', error)
     return NextResponse.json({ error: 'Gagal memperbarui data utang' }, { status: 500 })
   }
@@ -111,7 +109,7 @@ export async function DELETE(
     }
 
     return NextResponse.json({ success: true })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in DELETE /api/debts/[id]:', error)
     return NextResponse.json({ error: 'Gagal menghapus data utang' }, { status: 500 })
   }

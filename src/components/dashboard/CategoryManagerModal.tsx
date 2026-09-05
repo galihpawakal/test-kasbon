@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2, Plus, Trash2, Edit2 } from 'lucide-react'
 import useSWR from 'swr'
+import { Category } from '@/types'
 
 interface CategoryManagerModalProps {
   isOpen: boolean
@@ -47,26 +48,26 @@ export function CategoryManagerModal({ isOpen, onClose }: CategoryManagerModalPr
 
       await mutate()
       resetForm()
-    } catch (err: any) {
-      setFormError(err.message)
+    } catch (err: unknown) {
+      setFormError(err instanceof Error ? err.message : 'Gagal menyimpan kategori')
     } finally {
       setIsSubmitting(false)
     }
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Yakin ingin menghapus kategori ini? Data utang terkait tidak akan terhapus, namun tidak akan memiliki kategori.')) return
+    if (!confirm('Yakin mau hapus kategori ini? Kasbon yang udah pakai kategori ini bakal jadi tanpa kategori ya.')) return
     
     try {
       const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Gagal menghapus kategori')
       mutate()
-    } catch (err: any) {
-      alert(err.message)
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Gagal menghapus kategori')
     }
   }
 
-  const handleEdit = (cat: any) => {
+  const handleEdit = (cat: Category) => {
     setEditingId(cat.id)
     setName(cat.name)
     setColor(cat.color || '#e5e7eb')
@@ -100,7 +101,7 @@ export function CategoryManagerModal({ isOpen, onClose }: CategoryManagerModalPr
                 id="cat_name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Misal: Bisnis"
+                placeholder="Contoh: Bisnis"
               />
             </div>
             <div className="w-16 space-y-1.5">
@@ -122,7 +123,7 @@ export function CategoryManagerModal({ isOpen, onClose }: CategoryManagerModalPr
               </Button>
             )}
             <Button type="submit" size="sm" disabled={isSubmitting || !name.trim()}>
-              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : (editingId ? 'Simpan' : <><Plus className="h-4 w-4 mr-1" /> Tambah</>)}
+              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : (editingId ? 'Simpan Dong' : <><Plus className="h-4 w-4 mr-1" /> Tambah</>)}
             </Button>
           </div>
         </form>
@@ -131,9 +132,9 @@ export function CategoryManagerModal({ isOpen, onClose }: CategoryManagerModalPr
           {isLoading && <div className="text-center py-4"><Loader2 className="h-4 w-4 animate-spin mx-auto text-gray-400" /></div>}
           {error && <div className="text-red-500 text-sm text-center">Gagal memuat kategori</div>}
           {!isLoading && !error && categories?.length === 0 && (
-            <div className="text-center text-gray-500 text-sm py-4">Belum ada kategori.</div>
+            <div className="text-center text-gray-500 text-sm py-4">Belum ada kategori nih.</div>
           )}
-          {categories?.map((cat: any) => (
+          {categories?.map((cat: Category) => (
             <div key={cat.id} className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 border border-transparent hover:border-gray-100">
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded-full border border-gray-200" style={{ backgroundColor: cat.color || '#e5e7eb' }} />

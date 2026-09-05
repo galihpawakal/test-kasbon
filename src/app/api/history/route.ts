@@ -25,7 +25,7 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json(data)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in GET /api/history:', error)
     return NextResponse.json({ error: 'Gagal mengambil riwayat global' }, { status: 500 })
   }

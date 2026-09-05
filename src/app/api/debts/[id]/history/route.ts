@@ -31,7 +31,7 @@ export async function GET(
     }
 
     return NextResponse.json(data)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in GET /api/debts/[id]/history:', error)
     return NextResponse.json({ error: 'Gagal mengambil riwayat' }, { status: 500 })
   }

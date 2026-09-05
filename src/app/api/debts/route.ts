@@ -53,7 +53,7 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json(data)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in GET /api/debts:', error)
     return NextResponse.json({ error: 'Gagal mengambil data utang' }, { status: 500 })
   }
@@ -100,7 +100,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(data, { status: 201 })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in POST /api/debts:', error)
     return NextResponse.json({ error: 'Gagal mencatat data utang' }, { status: 500 })
   }

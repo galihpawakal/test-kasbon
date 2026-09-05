@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { formatRelativeTime, formatRupiah } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import useSWR from 'swr'
+import { Debt, Category, DebtHistoryItem } from '@/types'
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -21,8 +22,8 @@ export function DebtHistory({ debtId }: { debtId: string }) {
         if (!res.ok) throw new Error('Gagal memuat riwayat')
         const data = await res.json()
         setHistory(data)
-      } catch (err: any) {
-        setError(err.message)
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Gagal memuat riwayat')
       } finally {
         setIsLoading(false)
       }
@@ -60,13 +61,13 @@ export function DebtHistory({ debtId }: { debtId: string }) {
     }
   }
 
-  const formatFieldValue = (field: string, value: any) => {
+  const formatFieldValue = (field: string, value: string | number) => {
     if (value === null || value === undefined || value === '') return '-'
     
     switch (field) {
       case 'category_id':
         if (categories) {
-          const category = categories.find((c: any) => c.id === value)
+          const category = categories.find((c: Category) => c.id === value)
           return category ? category.name : value
         }
         return value
@@ -91,7 +92,7 @@ export function DebtHistory({ debtId }: { debtId: string }) {
     <div className="mt-6 border-t pt-4">
       <h4 className="text-sm font-semibold mb-3 text-gray-700">Riwayat Perubahan</h4>
       <div className="space-y-3 max-h-[150px] overflow-y-auto pr-2">
-        {history.map((h: any) => (
+        {history.map((h: DebtHistoryItem) => (
           <div key={h.id} className="text-xs text-gray-600 border-l-2 border-gray-200 pl-3 py-1">
             <div className="font-medium text-gray-900">{actionText(h.action)}</div>
             <div className="text-gray-400 mb-1">{formatRelativeTime(h.created_at)}</div>

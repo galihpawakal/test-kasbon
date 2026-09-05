@@ -1,4 +1,5 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Debt, Category } from '@/types'
 
 interface DebtFiltersProps {
   searchQuery: string
@@ -11,7 +12,7 @@ interface DebtFiltersProps {
   setTypeFilter: (val: string) => void
   categoryFilter: string
   setCategoryFilter: (val: string) => void
-  categories: any[]
+  categories: Category[]
   isGrouped: boolean
   setIsGrouped: (val: boolean) => void
 }
@@ -96,12 +97,12 @@ export function DebtFilters({
         <Select value={categoryFilter} onValueChange={(val) => val && setCategoryFilter(val)}>
           <SelectTrigger className="w-full sm:w-[150px] bg-white h-10 shadow-sm">
             <SelectValue placeholder="Kategori">
-              {categoryFilter === 'semua' ? 'Semua Kategori' : categories?.find((c: any) => c.id === categoryFilter)?.name || 'Kategori'}
+              {categoryFilter === 'semua' ? 'Semua Kategori' : categories?.find((c: Category) => c.id === categoryFilter)?.name || 'Kategori'}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="semua">Semua Kategori</SelectItem>
-            {categories?.map((c: any) => (
+            {categories?.map((c: Category) => (
               <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
             ))}
           </SelectContent>

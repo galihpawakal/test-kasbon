@@ -2,13 +2,15 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
 import { DebtItem } from './DebtItem'
+import { formatRupiah } from '@/lib/utils'
+import { Debt, Installment } from '@/types'
 
 interface DebtListProps {
   isLoading: boolean
-  error: any
+  error: Error | null
   isGrouped: boolean
-  paginatedDebts: any[]
-  paginatedGroups: any[]
+  paginatedDebts: Debt[]
+  paginatedGroups: [string, { totalOwedToMe: number; totalIOwe: number; items: Debt[] }][]
   totalGroups: number
   totalItems: number
   currentPage: number
@@ -16,9 +18,9 @@ interface DebtListProps {
   totalGroupPages: number
   setCurrentPage: (page: number) => void
   handleMarkSettled: (id: string, isSettled: boolean) => void
-  openEditModal: (debt: any) => void
-  setHistoryDebt: (debt: any) => void
-  setInstallmentDebt: (debt: any) => void
+  openEditModal: (debt: Debt) => void
+  setHistoryDebt: (debt: Debt) => void
+  setInstallmentDebt: (debt: Debt) => void
   handleDelete: (id: string) => void
 }
 
@@ -52,11 +54,11 @@ export function DebtList({
         </div>
       ) : (!isGrouped && paginatedDebts?.length === 0) || (isGrouped && paginatedGroups.length === 0) ? (
         <div className="text-center py-20 text-gray-500 bg-white rounded-xl border border-gray-200 shadow-sm">
-          Belum ada catatan kasbon yang sesuai filter.
+          Belum ada catatan kasbon yang sesuai filter nih.
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          {!isGrouped && paginatedDebts?.map((debt: any) => (
+          {!isGrouped && paginatedDebts?.map((debt: Debt) => (
             <DebtItem 
               key={debt.id} 
               debt={debt} 
@@ -81,11 +83,11 @@ export function DebtList({
                   </div>
                   <div className={`font-semibold ${net > 0 ? 'text-green-600' : net < 0 ? 'text-red-600' : 'text-gray-900'}`}>
                     {net > 0 ? 'Surplus ' : net < 0 ? 'Minus ' : 'Lunas '} 
-                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(Math.abs(net))}
+                    {formatRupiah(Math.abs(net))}
                   </div>
                 </summary>
                 <div className="bg-gray-50/30 p-4 border-t border-gray-100 flex flex-col gap-3">
-                  {group.items.map((debt: any) => (
+                  {group.items.map((debt: Debt) => (
                     <DebtItem 
                       key={debt.id} 
                       debt={debt} 

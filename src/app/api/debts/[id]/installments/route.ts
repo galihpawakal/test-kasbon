@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { installmentSchema } from '@/lib/validations/debt'
+import { formatRupiah } from '@/lib/utils'
 
 export async function GET(
   request: Request,
@@ -27,7 +28,7 @@ export async function GET(
     if (error) throw error
 
     return NextResponse.json(data)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in GET /api/debts/[id]/installments:', error)
     return NextResponse.json({ error: 'Gagal mengambil riwayat cicilan' }, { status: 500 })
   }
@@ -64,7 +65,7 @@ export async function POST(
     // 1. Fetch current debt to validate overpayment
     const { data: currentDebt, error: fetchError } = await supabase
       .from('debts')
-      .select('amount, total_paid')
+      .select('amount, total_paid, currency')
       .eq('id', id)
       .single()
 
@@ -76,7 +77,7 @@ export async function POST(
 
     if (validData.amount > remainingAmount) {
       return NextResponse.json(
-        { error: `Nominal cicilan (Rp ${validData.amount.toLocaleString('id-ID')}) melebihi sisa utang (Rp ${remainingAmount.toLocaleString('id-ID')})` },
+        { error: `Nominal cicilan (${formatRupiah(validData.amount, currentDebt.currency)}) melebihi sisa utang (${formatRupiah(remainingAmount, currentDebt.currency)})` },
         { status: 400 }
       )
     }
@@ -106,7 +107,7 @@ export async function POST(
     })
 
     return NextResponse.json(data, { status: 201 })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in POST /api/debts/[id]/installments:', error)
     return NextResponse.json({ error: 'Gagal mencatat cicilan' }, { status: 500 })
   }

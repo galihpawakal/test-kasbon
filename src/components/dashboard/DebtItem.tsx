@@ -2,13 +2,14 @@ import { Badge } from '@/components/ui/badge'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { MoreHorizontal, Phone, Calendar, AlignLeft } from 'lucide-react'
 import { formatRupiah, formatRelativeTime } from '@/lib/utils'
+import { Debt, Installment } from '@/types'
 
 interface DebtItemProps {
-  debt: any
+  debt: Debt
   onMarkSettled: (id: string, isSettled: boolean) => void
-  onEdit: (debt: any) => void
-  onHistory: (debt: any) => void
-  onInstallment: (debt: any) => void
+  onEdit: (debt: Debt) => void
+  onHistory: (debt: Debt) => void
+  onInstallment: (debt: Debt) => void
   onDelete: (id: string) => void
 }
 
@@ -32,7 +33,7 @@ export function DebtItem({ debt, onMarkSettled, onEdit, onHistory, onInstallment
             </h3>
             {debt.counterpart_phone && (
               <a 
-                href={`https://wa.me/${debt.counterpart_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Halo ${debt.counterpart_name}, ini reminder bahwa kamu memiliki tagihan/kasbon yang belum lunas.\nTotal hutang: ${formatRupiah(debt.amount)}${debt.total_paid > 0 ? `\nSudah dibayar: ${formatRupiah(debt.total_paid)}\nSisa tagihan: ${formatRupiah(debt.amount - debt.total_paid)}` : ''}`)}`}
+                href={`https://wa.me/${debt.counterpart_phone!.replace(/\D/g, '')}?text=${encodeURIComponent(`Halo ${debt.counterpart_name}, ini reminder bahwa kamu memiliki tagihan/kasbon yang belum lunas.\nTotal hutang: ${formatRupiah(debt.amount, debt.currency || 'IDR')}${debt.total_paid > 0 ? `\nSudah dibayar: ${formatRupiah(debt.total_paid, debt.currency || 'IDR')}\nSisa tagihan: ${formatRupiah(debt.amount - debt.total_paid, debt.currency || 'IDR')}` : ''}`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-500 hover:text-green-600 bg-gray-50 hover:bg-green-50 px-2 py-1 rounded-md transition-colors flex items-center text-sm font-medium gap-1.5 print:hidden border border-gray-100 hover:border-green-200"
@@ -104,9 +105,7 @@ export function DebtItem({ debt, onMarkSettled, onEdit, onHistory, onInstallment
         {/* Right: Amount & Actions */}
         <div className="flex md:flex-col items-center md:items-end justify-between w-full md:w-auto gap-3 shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-gray-100">
           <div className={`font-bold text-xl md:text-2xl tracking-tight ${debt.type === 'owed_to_me' ? 'text-green-600' : 'text-red-600'} ${isPaid ? 'opacity-50 line-through' : ''}`}>
-            {debt.type === 'owed_to_me' ? '+' : '-'}{(!debt.currency || debt.currency === 'IDR') 
-              ? formatRupiah(debt.amount) 
-              : new Intl.NumberFormat('en-US', { style: 'currency', currency: debt.currency }).format(debt.amount)}
+            {debt.type === 'owed_to_me' ? '+' : '-'}{formatRupiah(debt.amount, debt.currency || 'IDR')}
           </div>
           
           <DropdownMenu>
@@ -127,7 +126,7 @@ export function DebtItem({ debt, onMarkSettled, onEdit, onHistory, onInstallment
               
               {debt.counterpart_phone && debt.status !== 'paid' && (
                 <DropdownMenuItem 
-                  onClick={() => window.open(`https://wa.me/${debt.counterpart_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Halo ${debt.counterpart_name}, ini reminder bahwa kamu memiliki tagihan/kasbon yang belum lunas.\nTotal hutang: ${formatRupiah(debt.amount)}${debt.total_paid > 0 ? `\nSudah dibayar: ${formatRupiah(debt.total_paid)}\nSisa tagihan: ${formatRupiah(debt.amount - debt.total_paid)}` : ''}`)}`, '_blank')}
+                  onClick={() => window.open(`https://wa.me/${debt.counterpart_phone!.replace(/\D/g, '')}?text=${encodeURIComponent(`Halo ${debt.counterpart_name}, ini reminder bahwa kamu memiliki tagihan/kasbon yang belum lunas.\nTotal hutang: ${formatRupiah(debt.amount, debt.currency || 'IDR')}${debt.total_paid > 0 ? `\nSudah dibayar: ${formatRupiah(debt.total_paid, debt.currency || 'IDR')}\nSisa tagihan: ${formatRupiah(debt.amount - debt.total_paid, debt.currency || 'IDR')}` : ''}`)}`, '_blank')}
                   className="py-2 cursor-pointer flex items-center text-blue-700 focus:text-blue-800 focus:bg-blue-50"
                 >
                   <Phone className="mr-2 h-4 w-4" />

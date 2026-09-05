@@ -29,7 +29,7 @@ export async function GET() {
     }
 
     return NextResponse.json(data)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in GET /api/categories:', error)
     return NextResponse.json({ error: 'Gagal mengambil kategori' }, { status: 500 })
   }
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(data, { status: 201 })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in POST /api/categories:', error)
     return NextResponse.json({ error: 'Gagal menambah kategori' }, { status: 500 })
   }

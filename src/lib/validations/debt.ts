@@ -38,6 +38,9 @@ export const debtSchema = z.object({
     .optional()
     .nullable()
     .transform((val) => val || null),
+  status: z.enum(['unpaid', 'partial', 'paid']).optional(),
+  total_paid: z.number().nonnegative().optional(),
+  settled_at: z.string().optional().nullable(),
 })
 
 export type DebtInput = z.infer<typeof debtSchema>

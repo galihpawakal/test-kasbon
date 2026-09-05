@@ -8,7 +8,6 @@ import { Plus, Printer } from 'lucide-react'
 import { DebtFormModal } from './DebtFormModal'
 import { DebtHistory } from './DebtHistory'
 import { InstallmentModal } from './InstallmentModal'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
@@ -17,6 +16,7 @@ import { SummaryCards } from './SummaryCards'
 import { DebtChart } from './DebtChart'
 import { DebtFilters } from './DebtFilters'
 import { DebtList } from './DebtList'
+import { Debt, Category, Installment } from '@/types'
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -30,9 +30,9 @@ export function DashboardClient() {
   const [isGrouped, setIsGrouped] = useState(false)
   
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingDebt, setEditingDebt] = useState<any>(null)
-  const [historyDebt, setHistoryDebt] = useState<any>(null)
-  const [installmentDebt, setInstallmentDebt] = useState<any>(null)
+  const [editingDebt, setEditingDebt] = useState<Debt | null>(null)
+  const [historyDebt, setHistoryDebt] = useState<Debt | null>(null)
+  const [installmentDebt, setInstallmentDebt] = useState<Debt | null>(null)
   
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
@@ -76,7 +76,7 @@ export function DashboardClient() {
 
   const groupedData = useMemo(() => {
     if (!debts || !isGrouped) return {}
-    return debts.reduce((acc: any, debt: any) => {
+    return debts.reduce((acc: Record<string, { items: Debt[], totalOwedToMe: number, totalIOwe: number }>, debt: Debt) => {
       if (!acc[debt.counterpart_name]) {
         acc[debt.counterpart_name] = { items: [], totalOwedToMe: 0, totalIOwe: 0 }
       }
@@ -103,7 +103,7 @@ export function DashboardClient() {
   let totalIOwe = 0
 
   if (debts && Array.isArray(debts)) {
-    debts.forEach((debt: any) => {
+    debts.forEach((debt: Debt) => {
       const isIDR = !debt.currency || debt.currency === 'IDR'
       if (debt.status !== 'paid' && isIDR) {
         const remaining = debt.amount - (debt.total_paid || 0)
@@ -120,7 +120,7 @@ export function DashboardClient() {
 
   const handleMarkSettled = async (id: string, isSettled: boolean) => {
     if (!debts) return
-    const updatedDebts = debts.map((d: any) => {
+    const updatedDebts = debts.map((d: Debt) => {
       if (d.id === id) {
         if (isSettled) {
           // Batal Lunas
@@ -138,8 +138,8 @@ export function DashboardClient() {
     
     try {
       const payload = isSettled 
-        ? { status: updatedDebts.find((d: any) => d.id === id).status, settled_at: null }
-        : { status: 'paid', settled_at: new Date().toISOString(), total_paid: debts.find((d: any) => d.id === id).amount }
+        ? { status: updatedDebts.find((d: Debt) => d.id === id).status, settled_at: null }
+        : { status: 'paid', settled_at: new Date().toISOString(), total_paid: debts.find((d: Debt) => d.id === id)?.amount || 0 }
       
       const res = await fetch(`/api/debts/${id}`, {
         method: 'PATCH',
@@ -157,7 +157,7 @@ export function DashboardClient() {
     if (!confirm('Yakin ingin menghapus catatan ini?')) return
     if (!debts) return
     
-    const updatedDebts = debts.filter((d: any) => d.id !== id)
+    const updatedDebts = debts.filter((d: Debt) => d.id !== id)
     mutate(updatedDebts, false)
     
     try {
@@ -168,14 +168,20 @@ export function DashboardClient() {
     }
   }
 
-  const openEditModal = (debt: any) => {
+  const openEditModal = (debt: Debt) => {
+    setHistoryDebt(null)
+    setInstallmentDebt(null)
     setEditingDebt(debt)
     setIsModalOpen(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const openNewModal = () => {
+    setHistoryDebt(null)
+    setInstallmentDebt(null)
     setEditingDebt(null)
     setIsModalOpen(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const generatePDF = () => {
@@ -253,24 +259,18 @@ export function DashboardClient() {
     doc.text('Rincian Transaksi', 14, cardY + cardHeight + 15)
 
     // Table Data
-    let tableData: any[] = []
+    let tableData: (string|number)[][] = []
     
-    debts.forEach((debt: any, index: number) => {
+    debts.forEach((debt: Debt, index: number) => {
       const typeStr = debt.type === 'owed_to_me' ? 'Dihutang' : 'Hutang'
       const statusStr = debt.status === 'paid' ? 'Lunas' : debt.status === 'partial' ? 'Lunas Sebagian' : 'Belum Lunas'
       const txDateStr = new Date(debt.created_at).toLocaleDateString('id-ID')
       const catStr = debt.category?.name || '-'
-      const amountStr = (!debt.currency || debt.currency === 'IDR') 
-        ? formatRupiah(debt.amount) 
-        : new Intl.NumberFormat('en-US', { style: 'currency', currency: debt.currency }).format(debt.amount)
+      const amountStr = formatRupiah(debt.amount, debt.currency || 'IDR')
       
-      const paidStr = (!debt.currency || debt.currency === 'IDR')
-        ? formatRupiah(debt.total_paid || 0)
-        : new Intl.NumberFormat('en-US', { style: 'currency', currency: debt.currency }).format(debt.total_paid || 0)
+      const paidStr = formatRupiah(debt.total_paid || 0, debt.currency || 'IDR')
 
-      const remainingStr = (!debt.currency || debt.currency === 'IDR')
-        ? formatRupiah(debt.amount - (debt.total_paid || 0))
-        : new Intl.NumberFormat('en-US', { style: 'currency', currency: debt.currency }).format(debt.amount - (debt.total_paid || 0))
+      const remainingStr = formatRupiah(debt.amount - (debt.total_paid || 0), debt.currency || 'IDR')
 
       tableData.push([
         index + 1,
@@ -300,6 +300,7 @@ export function DashboardClient() {
         4: { halign: 'right' },
         5: { halign: 'right' }
       },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- jspdf-autotable internal hook type
       didParseCell: function(data: any) {
         if (data.section === 'body') {
           if (data.column.index === 2) {
@@ -318,6 +319,20 @@ export function DashboardClient() {
     doc.save('laporan-kasbon.pdf')
   }
 
+  const handleOpenHistory = (debt: Debt) => {
+    setIsModalOpen(false)
+    setInstallmentDebt(null)
+    setHistoryDebt(debt)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleOpenInstallment = (debt: Debt) => {
+    setIsModalOpen(false)
+    setHistoryDebt(null)
+    setInstallmentDebt(debt)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
@@ -332,6 +347,38 @@ export function DashboardClient() {
       </div>
 
       <SummaryCards totalOwedToMe={totalOwedToMe} totalIOwe={totalIOwe} net={net} />
+
+      {/* Inline Forms */}
+      {isModalOpen && (
+        <DebtFormModal 
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSuccess={() => mutate()}
+          editingDebt={editingDebt || undefined}
+        />
+      )}
+      
+      {installmentDebt && (
+        <InstallmentModal 
+          isOpen={!!installmentDebt}
+          onClose={() => setInstallmentDebt(null)}
+          debt={installmentDebt}
+          onSuccess={() => mutate()}
+        />
+      )}
+
+      {historyDebt && (
+        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm animate-in fade-in slide-in-from-top-4 duration-300 mb-6">
+          <div className="flex justify-between items-center mb-4 border-b pb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-800">Riwayat Kasbon</h2>
+              <p className="text-sm text-gray-500">Catatan untuk {historyDebt.counterpart_name}</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setHistoryDebt(null)}>Tutup</Button>
+          </div>
+          <DebtHistory debtId={historyDebt.id} />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-1">
@@ -360,7 +407,7 @@ export function DashboardClient() {
             error={error}
             isGrouped={isGrouped}
             paginatedDebts={paginatedDebts}
-            paginatedGroups={paginatedGroups}
+            paginatedGroups={Object.entries(groupedData) as [string, { totalOwedToMe: number; totalIOwe: number; items: Debt[] }][]}
             totalGroups={totalGroups}
             totalItems={totalItems}
             currentPage={currentPage}
@@ -369,35 +416,12 @@ export function DashboardClient() {
             setCurrentPage={setCurrentPage}
             handleMarkSettled={handleMarkSettled}
             openEditModal={openEditModal}
-            setHistoryDebt={setHistoryDebt}
-            setInstallmentDebt={setInstallmentDebt}
+            setHistoryDebt={handleOpenHistory}
+            setInstallmentDebt={handleOpenInstallment}
             handleDelete={handleDelete}
           />
         </div>
       </div>
-
-      <DebtFormModal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSuccess={() => mutate()}
-        editingDebt={editingDebt}
-      />
-      
-      <Dialog open={!!historyDebt} onOpenChange={(open) => !open && setHistoryDebt(null)}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Riwayat Kasbon</DialogTitle>
-          </DialogHeader>
-          {historyDebt && <DebtHistory debtId={historyDebt.id} />}
-        </DialogContent>
-      </Dialog>
-      
-      <InstallmentModal 
-        isOpen={!!installmentDebt}
-        onClose={() => setInstallmentDebt(null)}
-        debt={installmentDebt}
-        onSuccess={() => mutate()}
-      />
     </div>
   )
 }

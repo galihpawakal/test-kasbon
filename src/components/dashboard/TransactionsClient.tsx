@@ -7,9 +7,9 @@ import { Plus } from 'lucide-react'
 import { DebtFormModal } from './DebtFormModal'
 import { DebtHistory } from './DebtHistory'
 import { InstallmentModal } from './InstallmentModal'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DebtFilters } from './DebtFilters'
 import { DebtList } from './DebtList'
+import { Debt, Category, Installment } from '@/types'
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -23,9 +23,9 @@ export function TransactionsClient() {
   const [isGrouped, setIsGrouped] = useState(false)
   
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingDebt, setEditingDebt] = useState<any>(null)
-  const [historyDebt, setHistoryDebt] = useState<any>(null)
-  const [installmentDebt, setInstallmentDebt] = useState<any>(null)
+  const [editingDebt, setEditingDebt] = useState<Debt | null>(null)
+  const [historyDebt, setHistoryDebt] = useState<Debt | null>(null)
+  const [installmentDebt, setInstallmentDebt] = useState<Debt | null>(null)
   
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
@@ -69,7 +69,7 @@ export function TransactionsClient() {
 
   const groupedData = useMemo(() => {
     if (!debts || !isGrouped) return {}
-    return debts.reduce((acc: any, debt: any) => {
+    return debts.reduce((acc: Record<string, { items: Debt[], totalOwedToMe: number, totalIOwe: number }>, debt: Debt) => {
       if (!acc[debt.counterpart_name]) {
         acc[debt.counterpart_name] = { items: [], totalOwedToMe: 0, totalIOwe: 0 }
       }
@@ -86,14 +86,14 @@ export function TransactionsClient() {
     }, {})
   }, [debts, isGrouped])
 
-  const groupEntries = Object.entries(groupedData)
+  const groupEntries = Object.entries(groupedData) as [string, { totalOwedToMe: number; totalIOwe: number; items: Debt[] }][]
   const totalGroups = groupEntries.length
   const totalGroupPages = Math.ceil(totalGroups / itemsPerPage)
   const paginatedGroups = groupEntries.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
 
   const handleMarkSettled = async (id: string, isSettled: boolean) => {
     if (!debts) return
-    const updatedDebts = debts.map((d: any) => {
+    const updatedDebts = debts.map((d: Debt) => {
       if (d.id === id) {
         if (isSettled) {
           return { ...d, status: d.total_paid > 0 ? 'partial' : 'unpaid', settled_at: null }
@@ -108,8 +108,8 @@ export function TransactionsClient() {
     
     try {
       const payload = isSettled 
-        ? { status: updatedDebts.find((d: any) => d.id === id).status, settled_at: null }
-        : { status: 'paid', settled_at: new Date().toISOString(), total_paid: debts.find((d: any) => d.id === id).amount }
+        ? { status: updatedDebts.find((d: Debt) => d.id === id).status, settled_at: null }
+        : { status: 'paid', settled_at: new Date().toISOString(), total_paid: debts.find((d: Debt) => d.id === id).amount }
       
       const res = await fetch(`/api/debts/${id}`, {
         method: 'PATCH',
@@ -126,7 +126,7 @@ export function TransactionsClient() {
     if (!confirm('Yakin ingin menghapus catatan ini?')) return
     if (!debts) return
     
-    const updatedDebts = debts.filter((d: any) => d.id !== id)
+    const updatedDebts = debts.filter((d: Debt) => d.id !== id)
     mutate(updatedDebts, false)
     
     try {
@@ -137,25 +137,79 @@ export function TransactionsClient() {
     }
   }
 
-  const openEditModal = (debt: any) => {
+  const openEditModal = (debt: Debt) => {
+    setHistoryDebt(null)
+    setInstallmentDebt(null)
     setEditingDebt(debt)
     setIsModalOpen(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const openNewModal = () => {
+    setHistoryDebt(null)
+    setInstallmentDebt(null)
     setEditingDebt(null)
     setIsModalOpen(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleOpenHistory = (debt: Debt) => {
+    setIsModalOpen(false)
+    setInstallmentDebt(null)
+    setHistoryDebt(debt)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleOpenInstallment = (debt: Debt) => {
+    setIsModalOpen(false)
+    setHistoryDebt(null)
+    setInstallmentDebt(debt)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Transaksi Kasbon</h1>
-        <Button onClick={openNewModal} className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
-          <Plus className="mr-2 h-4 w-4" />
-          Catat Baru
-        </Button>
+        {!isModalOpen && !historyDebt && !installmentDebt && (
+          <Button onClick={openNewModal} className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
+            <Plus className="mr-2 h-4 w-4" />
+            Catat Baru
+          </Button>
+        )}
       </div>
+
+      {/* Inline Forms */}
+      {isModalOpen && (
+        <DebtFormModal 
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSuccess={() => mutate()}
+          editingDebt={editingDebt || undefined}
+        />
+      )}
+      
+      {installmentDebt && (
+        <InstallmentModal 
+          isOpen={!!installmentDebt}
+          onClose={() => setInstallmentDebt(null)}
+          debt={installmentDebt}
+          onSuccess={() => mutate()}
+        />
+      )}
+
+      {historyDebt && (
+        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm animate-in fade-in slide-in-from-top-4 duration-300 mb-6">
+          <div className="flex justify-between items-center mb-4 border-b pb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-800">Riwayat Kasbon</h2>
+              <p className="text-sm text-gray-500">Catatan untuk {historyDebt.counterpart_name}</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setHistoryDebt(null)}>Tutup</Button>
+          </div>
+          <DebtHistory debtId={historyDebt.id} />
+        </div>
+      )}
 
       <DebtFilters 
         searchQuery={searchQuery}
@@ -187,32 +241,9 @@ export function TransactionsClient() {
         setCurrentPage={setCurrentPage}
         handleMarkSettled={handleMarkSettled}
         openEditModal={openEditModal}
-        setHistoryDebt={setHistoryDebt}
-        setInstallmentDebt={setInstallmentDebt}
+        setHistoryDebt={handleOpenHistory}
+        setInstallmentDebt={handleOpenInstallment}
         handleDelete={handleDelete}
-      />
-
-      <DebtFormModal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSuccess={() => mutate()}
-        editingDebt={editingDebt}
-      />
-      
-      <Dialog open={!!historyDebt} onOpenChange={(open) => !open && setHistoryDebt(null)}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Riwayat Kasbon</DialogTitle>
-          </DialogHeader>
-          {historyDebt && <DebtHistory debtId={historyDebt.id} />}
-        </DialogContent>
-      </Dialog>
-      
-      <InstallmentModal 
-        isOpen={!!installmentDebt}
-        onClose={() => setInstallmentDebt(null)}
-        debt={installmentDebt}
-        onSuccess={() => mutate()}
       />
     </div>
   )

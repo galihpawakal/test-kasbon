@@ -5,8 +5,9 @@ import { formatRupiah } from '@/lib/utils'
 import { useMemo } from 'react'
 import { parseISO, format, subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns'
 import { id } from 'date-fns/locale'
+import { Debt } from '@/types'
 
-export function TrendChart({ debts }: { debts: any[] }) {
+export function TrendChart({ debts }: { debts: Debt[] }) {
   const data = useMemo(() => {
     if (!debts || debts.length === 0) return []
 
@@ -87,6 +88,7 @@ export function TrendChart({ debts }: { debts: any[] }) {
               width={50}
             />
             <Tooltip 
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Recharts internal type limit
               formatter={(value: any, name: any) => [formatRupiah(Number(value) || 0), name]}
               contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
               itemStyle={{ color: '#1f2937' }}

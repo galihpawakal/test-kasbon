@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { formatRupiah, formatRelativeTime } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Send, FileText, Activity, AlertCircle, PlusCircle } from 'lucide-react'
+import { Debt } from '@/types'
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -68,7 +69,7 @@ export function OverviewClient() {
   let countIOwe = 0
 
   if (debts && Array.isArray(debts)) {
-    debts.forEach((debt: any) => {
+    debts.forEach((debt: Debt) => {
       const isIDR = !debt.currency || debt.currency === 'IDR'
       if (debt.status !== 'paid' && isIDR) {
         const remaining = debt.amount - (debt.total_paid || 0)
@@ -89,8 +90,8 @@ export function OverviewClient() {
   const latestTransactions = [...debts].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5)
   
   const needToCollect = debts
-    .filter((d: any) => d.type === 'owed_to_me' && d.status !== 'paid' && (!d.currency || d.currency === 'IDR'))
-    .sort((a: any, b: any) => (b.amount - (b.total_paid || 0)) - (a.amount - (a.total_paid || 0)))
+    .filter((d: Debt) => d.type === 'owed_to_me' && d.status !== 'paid' && (!d.currency || d.currency === 'IDR'))
+    .sort((a: Debt, b: Debt) => (b.amount - (b.total_paid || 0)) - (a.amount - (a.total_paid || 0)))
     .slice(0, 3)
 
   const handleWA = (name: string, phone: string, amount: number) => {
@@ -134,7 +135,7 @@ export function OverviewClient() {
             </Link>
           </div>
           <div className="divide-y divide-gray-100">
-            {latestTransactions.map((tx: any) => (
+            {latestTransactions.map((tx: Debt) => (
               <div key={tx.id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${tx.type === 'owed_to_me' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
@@ -176,7 +177,7 @@ export function OverviewClient() {
               </div>
             ) : (
               <div className="space-y-4">
-                {needToCollect.map((debt: any) => {
+                {needToCollect.map((debt: Debt) => {
                   const remaining = debt.amount - (debt.total_paid || 0)
                   return (
                     <div key={debt.id} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
@@ -192,7 +193,7 @@ export function OverviewClient() {
                         variant="outline" 
                         className="w-full text-xs h-8 bg-green-50 text-green-700 border-green-200 hover:bg-green-100 hover:text-green-800"
                         disabled={!debt.counterpart_phone}
-                        onClick={() => handleWA(debt.counterpart_name, debt.counterpart_phone, remaining)}
+                        onClick={() => handleWA(debt.counterpart_name, debt.counterpart_phone || '', remaining)}
                       >
                         <Send className="w-3 h-3 mr-1.5" />
                         {debt.counterpart_phone ? 'Kirim WhatsApp' : 'No. WA Kosong'}

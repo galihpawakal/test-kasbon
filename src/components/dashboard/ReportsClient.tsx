@@ -11,6 +11,7 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts'
 import { cn } from '@/lib/utils'
+import { Debt, Category } from '@/types'
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -33,7 +34,7 @@ export function ReportsClient() {
   const [isFiltering, setIsFiltering] = useState(false)
   const filterTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  const handleFilterChange = (setter: any, value: any) => {
+  const handleFilterChange = (setter: React.Dispatch<React.SetStateAction<any>>, value: string | number) => {
     setter(value)
     setIsFiltering(true)
     setCurrentPage(1)
@@ -83,7 +84,7 @@ export function ReportsClient() {
 
   const filteredDebts = useMemo(() => {
     if (!debts) return []
-    return debts.filter((debt: any) => {
+    return debts.filter((debt: Debt) => {
       let match = true
       
       if (categoryId !== 'semua' && debt.category_id !== categoryId) match = false
@@ -165,7 +166,7 @@ export function ReportsClient() {
   let lunasSebagianCount = 0
   let belumLunasCount = 0
 
-  sortedDebts.forEach((debt: any) => {
+  sortedDebts.forEach((debt: Debt) => {
     const isIDR = !debt.currency || debt.currency === 'IDR'
     if (debt.status !== 'paid' && isIDR) {
       const remaining = debt.amount - (debt.total_paid || 0)
@@ -253,9 +254,9 @@ export function ReportsClient() {
     doc.setTextColor(40, 40, 40)
     doc.text('Rincian Transaksi', 14, cardY + cardHeight + 15)
 
-    let tableData: any[] = []
+    let tableData: (string|number)[][] = []
     
-    sortedDebts.forEach((debt: any, index: number) => {
+    sortedDebts.forEach((debt: Debt, index: number) => {
       const typeStr = debt.type === 'owed_to_me' ? 'Dihutang' : 'Hutang'
       const statusStr = debt.status === 'paid' ? 'Lunas' : debt.status === 'partial' ? 'Sebagian' : 'Belum'
       const txDateStr = new Date(debt.created_at).toLocaleDateString('id-ID')
@@ -300,7 +301,7 @@ export function ReportsClient() {
     if (!sortedDebts || sortedDebts.length === 0) return
 
     const headers = ['No', 'Nama', 'Tipe', 'Nominal', 'Dibayar', 'Sisa', 'Kategori', 'Status', 'Tanggal', 'Keterangan']
-    const rows = sortedDebts.map((debt: any, index: number) => {
+    const rows = sortedDebts.map((debt: Debt, index: number) => {
       const typeStr = debt.type === 'owed_to_me' ? 'Dihutang' : 'Hutang'
       const statusStr = debt.status === 'paid' ? 'Lunas' : debt.status === 'partial' ? 'Lunas Sebagian' : 'Belum Lunas'
       const txDateStr = new Date(debt.created_at).toLocaleDateString('id-ID')
@@ -432,7 +433,7 @@ export function ReportsClient() {
               onChange={(e) => handleFilterChange(setCategoryId, e.target.value)}
             >
               <option value="semua">Semua Kategori</option>
-              {categories?.map((cat: any) => (
+              {categories?.map((cat: Category) => (
                 <option key={cat.id} value={cat.id}>{cat.name}</option>
               ))}
             </select>
@@ -544,7 +545,7 @@ export function ReportsClient() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {paginatedDebts.map((debt: any) => {
+                  {paginatedDebts.map((debt: Debt) => {
                     const remaining = debt.amount - (debt.total_paid || 0)
                     return (
                       <tr key={debt.id} className="hover:bg-blue-50/30 transition-colors">

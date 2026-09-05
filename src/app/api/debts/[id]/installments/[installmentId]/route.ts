@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { installmentSchema } from '@/lib/validations/debt'
+import { formatRupiah } from '@/lib/utils'
 
 export async function DELETE(
   request: Request,
@@ -27,7 +28,7 @@ export async function DELETE(
     if (error) throw error
 
     return NextResponse.json({ success: true })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in DELETE /api/debts/[id]/installments/[installmentId]:', error)
     return NextResponse.json({ error: 'Gagal menghapus cicilan' }, { status: 500 })
   }
@@ -60,13 +61,13 @@ export async function PATCH(
       )
     }
 
-    const validData: any = validationResult.data
+    const validData = validationResult.data
 
     if (validData.amount !== undefined) {
       // Fetch current debt and the old installment to validate overpayment properly
       const { data: currentDebt, error: fetchError } = await supabase
         .from('debts')
-        .select('amount, total_paid')
+        .select('amount, total_paid, currency')
         .eq('id', id)
         .single()
 
@@ -85,7 +86,7 @@ export async function PATCH(
 
       if (validData.amount > remainingAmountWithoutThis) {
         return NextResponse.json(
-          { error: `Nominal cicilan (Rp ${validData.amount.toLocaleString('id-ID')}) melebihi sisa utang maksimal (Rp ${remainingAmountWithoutThis.toLocaleString('id-ID')})` },
+          { error: `Nominal cicilan (${formatRupiah(validData.amount, currentDebt.currency)}) melebihi sisa utang maksimal (${formatRupiah(remainingAmountWithoutThis, currentDebt.currency)})` },
           { status: 400 }
         )
       }
@@ -107,7 +108,7 @@ export async function PATCH(
     }
 
     return NextResponse.json(data)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in PATCH /api/debts/[id]/installments/[installmentId]:', error)
     return NextResponse.json({ error: 'Gagal memperbarui cicilan' }, { status: 500 })
   }
