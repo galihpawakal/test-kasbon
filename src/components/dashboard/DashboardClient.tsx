@@ -327,10 +327,7 @@ export function DashboardClient() {
             <Printer className="mr-2 h-4 w-4" />
             Cetak PDF
           </Button>
-          <Button onClick={openNewModal} className="flex-1 sm:flex-none">
-            <Plus className="mr-2 h-4 w-4" />
-            Catat Baru
-          </Button>
+
         </div>
       </div>
 

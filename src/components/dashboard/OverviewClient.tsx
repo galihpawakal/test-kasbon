@@ -106,12 +106,7 @@ export function OverviewClient() {
     <div className="space-y-6 pb-12">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Dashboard</h1>
-        <Link href="/transactions">
-          <Button size="sm">
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Catat Baru
-          </Button>
-        </Link>
+
       </div>
 
       <SummaryCards 

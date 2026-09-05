@@ -151,7 +151,7 @@ export function TransactionsClient() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Transaksi Kasbon</h1>
-        <Button onClick={openNewModal}>
+        <Button onClick={openNewModal} className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
           <Plus className="mr-2 h-4 w-4" />
           Catat Baru
         </Button>
