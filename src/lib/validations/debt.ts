@@ -24,11 +24,9 @@ export const debtSchema = z.object({
     })
     .transform((val) => (val ? new Date(val).toISOString().split('T')[0] : null)),
   category_id: z
-    .string()
-    .uuid('Kategori tidak valid')
+    .union([z.string().uuid('Kategori tidak valid'), z.literal(''), z.null()])
     .optional()
-    .nullable()
-    .transform((val) => val || null),
+    .transform((val) => val === '' ? null : val || null),
   currency: z
     .string()
     .length(3, 'Kode mata uang harus 3 huruf')
@@ -43,3 +41,25 @@ export const debtSchema = z.object({
 })
 
 export type DebtInput = z.infer<typeof debtSchema>
+
+export const installmentSchema = z.object({
+  amount: z.number()
+    .int('Jumlah harus berupa bilangan bulat')
+    .positive('Jumlah harus lebih dari 0'),
+  note: z
+    .string()
+    .max(200, 'Catatan maksimal 200 karakter')
+    .optional()
+    .nullable()
+    .transform((val) => val || null),
+  paid_at: z
+    .string()
+    .optional()
+    .nullable()
+    .refine((val) => !val || !isNaN(Date.parse(val)), {
+      message: 'Format tanggal tidak valid',
+    })
+    .transform((val) => (val ? new Date(val).toISOString() : new Date().toISOString())),
+})
+
+export type InstallmentInput = z.infer<typeof installmentSchema>

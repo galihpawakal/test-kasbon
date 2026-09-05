@@ -36,10 +36,10 @@ export async function GET(request: Request) {
       query = query.eq('category_id', category)
     }
 
-    if (status === 'lunas') {
-      query = query.not('settled_at', 'is', null)
-    } else if (status === 'belum_lunas') {
-      query = query.is('settled_at', null)
+    if (status && status !== 'semua') {
+      if (status === 'belum_lunas') query = query.eq('status', 'unpaid')
+      else if (status === 'lunas_sebagian') query = query.eq('status', 'partial')
+      else if (status === 'lunas') query = query.eq('status', 'paid')
     }
 
     if (search) {

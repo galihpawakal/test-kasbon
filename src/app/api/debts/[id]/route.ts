@@ -41,6 +41,26 @@ export async function PATCH(
       validData.settled_at = body.settled_at
     }
 
+    // If explicitly updating amount, validate against total_paid
+    if (validData.amount !== undefined) {
+      const { data: currentDebt, error: fetchError } = await supabase
+        .from('debts')
+        .select('total_paid')
+        .eq('id', id)
+        .single()
+        
+      if (fetchError) {
+        return NextResponse.json({ error: 'Gagal memvalidasi data utang' }, { status: 500 })
+      }
+      
+      if (validData.amount < currentDebt.total_paid) {
+        return NextResponse.json(
+          { error: `Nominal utang tidak boleh lebih kecil dari total yang sudah dibayar (${currentDebt.total_paid})` },
+          { status: 400 }
+        )
+      }
+    }
+
     // 3. Update DB (RLS ensures user can only update their own row)
     const { data, error } = await supabase
       .from('debts')

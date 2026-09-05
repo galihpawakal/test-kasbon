@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { debtSchema, DebtInput } from '@/lib/validations/debt'
 import { Loader2, Settings } from 'lucide-react'
 import { DebtHistory } from './DebtHistory'
-import { CategoryManagerModal } from './CategoryManagerModal'
+import { formatRupiah } from '@/lib/utils'
 import useSWR from 'swr'
 
 interface DebtFormModalProps {
@@ -25,7 +25,6 @@ interface DebtFormModalProps {
 export function DebtFormModal({ isOpen, onClose, onSuccess, editingDebt }: DebtFormModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
   const { data: categories } = useSWR(isOpen ? '/api/categories' : null, (url) => fetch(url).then(res => res.json()))
 
   const {
@@ -82,6 +81,12 @@ export function DebtFormModal({ isOpen, onClose, onSuccess, editingDebt }: DebtF
     // transform empty category_id to null
     if (!data.category_id) {
       data.category_id = null
+    }
+
+    if (editingDebt && data.amount < (editingDebt.total_paid || 0)) {
+      setError(`Jumlah utang tidak boleh lebih kecil dari total yang sudah dibayar (${formatRupiah(editingDebt.total_paid)})`)
+      setIsSubmitting(false)
+      return
     }
 
     try {
@@ -233,9 +238,6 @@ export function DebtFormModal({ isOpen, onClose, onSuccess, editingDebt }: DebtF
           <div className="space-y-1.5">
             <div className="flex justify-between items-center">
               <Label>Kategori (Opsional)</Label>
-              <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs text-blue-600" onClick={() => setIsCategoryModalOpen(true)}>
-                <Settings className="h-3 w-3 mr-1" /> Kelola
-              </Button>
             </div>
             <Select
               value={watch('category_id') || 'none'}
@@ -281,8 +283,6 @@ export function DebtFormModal({ isOpen, onClose, onSuccess, editingDebt }: DebtF
         </form>
 
       </DialogContent>
-      
-      <CategoryManagerModal isOpen={isCategoryModalOpen} onClose={() => setIsCategoryModalOpen(false)} />
     </Dialog>
   )
 }

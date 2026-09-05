@@ -1,13 +1,18 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { formatRelativeTime } from '@/lib/utils'
+import { formatRelativeTime, formatRupiah } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
+import useSWR from 'swr'
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 export function DebtHistory({ debtId }: { debtId: string }) {
   const [history, setHistory] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  
+  const { data: categories } = useSWR('/api/categories', fetcher)
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -40,6 +45,48 @@ export function DebtHistory({ debtId }: { debtId: string }) {
     }
   }
 
+  const formatFieldLabel = (field: string) => {
+    switch (field) {
+      case 'counterpart_name': return 'Nama'
+      case 'counterpart_phone': return 'No. HP'
+      case 'type': return 'Tipe'
+      case 'amount': return 'Nominal'
+      case 'currency': return 'Mata Uang'
+      case 'due_date': return 'Jatuh Tempo'
+      case 'category_id': return 'Kategori'
+      case 'note': return 'Catatan'
+      case 'status': return 'Status'
+      default: return field.replace('_', ' ')
+    }
+  }
+
+  const formatFieldValue = (field: string, value: any) => {
+    if (value === null || value === undefined || value === '') return '-'
+    
+    switch (field) {
+      case 'category_id':
+        if (categories) {
+          const category = categories.find((c: any) => c.id === value)
+          return category ? category.name : value
+        }
+        return value
+      case 'type':
+        return value === 'owed_to_me' ? 'Dihutang ke Saya' : 'Saya Hutang'
+      case 'amount':
+        return formatRupiah(Number(value))
+      case 'due_date':
+        try {
+          return new Date(value).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+        } catch(e) {
+          return value
+        }
+      case 'status':
+        return value === 'paid' ? 'Lunas' : value === 'partial' ? 'Lunas Sebagian' : 'Belum Lunas'
+      default:
+        return String(value)
+    }
+  }
+
   return (
     <div className="mt-6 border-t pt-4">
       <h4 className="text-sm font-semibold mb-3 text-gray-700">Riwayat Perubahan</h4>
@@ -52,9 +99,9 @@ export function DebtHistory({ debtId }: { debtId: string }) {
               <div className="mt-1 bg-gray-50 p-1.5 rounded space-y-1">
                 {Object.entries(h.changed_fields).map(([field, vals]: [string, any]) => (
                   <div key={field} className="grid grid-cols-1 gap-0.5">
-                    <span className="font-medium capitalize">{field.replace('_', ' ')}:</span>
-                    <span className="text-gray-500 line-through">{String(vals.old || '-')}</span>
-                    <span className="text-green-600">{String(vals.new || '-')}</span>
+                    <span className="font-medium capitalize">{formatFieldLabel(field)}:</span>
+                    <span className="text-gray-500 line-through">{formatFieldValue(field, vals.old)}</span>
+                    <span className="text-green-600">{formatFieldValue(field, vals.new)}</span>
                   </div>
                 ))}
               </div>
