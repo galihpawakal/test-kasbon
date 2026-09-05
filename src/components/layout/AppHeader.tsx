@@ -8,7 +8,7 @@ import { usePathname } from 'next/navigation'
 import { navItems } from './AppSidebar'
 import { cn } from '@/lib/utils'
 
-export function AppHeader({ userEmail }: { userEmail: string }) {
+export function AppHeader({ userEmail, userName = 'User' }: { userEmail: string, userName?: string }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const pathname = usePathname()
 
@@ -102,7 +102,7 @@ export function AppHeader({ userEmail }: { userEmail: string }) {
                   <User className="h-4 w-4 text-blue-700" />
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="text-sm font-medium text-gray-900 truncate">Administrator</span>
+                  <span className="text-sm font-medium text-gray-900 truncate">{userName}</span>
                   <span className="text-xs text-gray-500 truncate" title={userEmail}>{userEmail}</span>
                 </div>
               </div>
